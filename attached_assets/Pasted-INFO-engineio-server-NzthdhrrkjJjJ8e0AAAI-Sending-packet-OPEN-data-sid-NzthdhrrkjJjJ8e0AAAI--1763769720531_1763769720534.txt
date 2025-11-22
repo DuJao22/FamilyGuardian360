@@ -1,0 +1,66 @@
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Sending packet OPEN data {'sid': 'NzthdhrrkjJjJ8e0AAAI', 'upgrades': [], 'pingTimeout': 20000, 'pingInterval': 25000}
+NzthdhrrkjJjJ8e0AAAI: Received request to upgrade to websocket
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Received request to upgrade to websocket
+NzthdhrrkjJjJ8e0AAAI: Upgrade to websocket successful
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Upgrade to websocket successful
+NzthdhrrkjJjJ8e0AAAI: Received packet MESSAGE data 0
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Received packet MESSAGE data 0
+jaJOoR5MGuplE0FrAAAJ is entering room user_1 [/]
+INFO:socketio.server:jaJOoR5MGuplE0FrAAAJ is entering room user_1 [/]
+emitting event "connected" to jaJOoR5MGuplE0FrAAAJ [/]
+INFO:socketio.server:emitting event "connected" to jaJOoR5MGuplE0FrAAAJ [/]
+NzthdhrrkjJjJ8e0AAAI: Sending packet MESSAGE data 2["connected",{"status":"success"}]
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Sending packet MESSAGE data 2["connected",{"status":"success"}]
+NzthdhrrkjJjJ8e0AAAI: Sending packet MESSAGE data 0{"sid":"jaJOoR5MGuplE0FrAAAJ"}
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Sending packet MESSAGE data 0{"sid":"jaJOoR5MGuplE0FrAAAJ"}
+✅ Ping OK (última: 0.0s atrás)
+NzthdhrrkjJjJ8e0AAAI: Sending packet PING data None
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Sending packet PING data None
+NzthdhrrkjJjJ8e0AAAI: Received packet PONG data 
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Received packet PONG data 
+[2025-11-22 00:00:28 +0000] [3698] [INFO] Handling signal: winch
+[2025-11-22 00:00:29 +0000] [3698] [INFO] Handling signal: winch
+DpI17JBmkRYgqb0BAAAK: Sending packet OPEN data {'sid': 'DpI17JBmkRYgqb0BAAAK', 'upgrades': [], 'pingTimeout': 20000, 'pingInterval': 25000}
+INFO:engineio.server:DpI17JBmkRYgqb0BAAAK: Sending packet OPEN data {'sid': 'DpI17JBmkRYgqb0BAAAK', 'upgrades': [], 'pingTimeout': 20000, 'pingInterval': 25000}
+DpI17JBmkRYgqb0BAAAK: Received request to upgrade to websocket
+INFO:engineio.server:DpI17JBmkRYgqb0BAAAK: Received request to upgrade to websocket
+DpI17JBmkRYgqb0BAAAK: Upgrade to websocket successful
+INFO:engineio.server:DpI17JBmkRYgqb0BAAAK: Upgrade to websocket successful
+DpI17JBmkRYgqb0BAAAK: Received packet MESSAGE data 0
+INFO:engineio.server:DpI17JBmkRYgqb0BAAAK: Received packet MESSAGE data 0
+3k0O683MX6BX4xjVAAAL is entering room user_1 [/]
+INFO:socketio.server:3k0O683MX6BX4xjVAAAL is entering room user_1 [/]
+emitting event "connected" to 3k0O683MX6BX4xjVAAAL [/]
+INFO:socketio.server:emitting event "connected" to 3k0O683MX6BX4xjVAAAL [/]
+DpI17JBmkRYgqb0BAAAK: Sending packet MESSAGE data 2["connected",{"status":"success"}]
+INFO:engineio.server:DpI17JBmkRYgqb0BAAAK: Sending packet MESSAGE data 2["connected",{"status":"success"}]
+DpI17JBmkRYgqb0BAAAK: Sending packet MESSAGE data 0{"sid":"3k0O683MX6BX4xjVAAAL"}
+INFO:engineio.server:DpI17JBmkRYgqb0BAAAK: Sending packet MESSAGE data 0{"sid":"3k0O683MX6BX4xjVAAAL"}
+✅ Ping OK (última: 0.0s atrás)
+NzthdhrrkjJjJ8e0AAAI: Sending packet PING data None
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Sending packet PING data None
+NzthdhrrkjJjJ8e0AAAI: Received packet PONG data 
+INFO:engineio.server:NzthdhrrkjJjJ8e0AAAI: Received packet PONG data 
+jaJOoR5MGuplE0FrAAAJ is leaving room user_1 [/]
+INFO:socketio.server:jaJOoR5MGuplE0FrAAAJ is leaving room user_1 [/]
+wj4iYxJ0asNXV9Y3AAAM: Sending packet OPEN data {'sid': 'wj4iYxJ0asNXV9Y3AAAM', 'upgrades': [], 'pingTimeout': 20000, 'pingInterval': 25000}
+INFO:engineio.server:wj4iYxJ0asNXV9Y3AAAM: Sending packet OPEN data {'sid': 'wj4iYxJ0asNXV9Y3AAAM', 'upgrades': [], 'pingTimeout': 20000, 'pingInterval': 25000}
+wj4iYxJ0asNXV9Y3AAAM: Received request to upgrade to websocket
+INFO:engineio.server:wj4iYxJ0asNXV9Y3AAAM: Received request to upgrade to websocket
+wj4iYxJ0asNXV9Y3AAAM: Upgrade to websocket successful
+INFO:engineio.server:wj4iYxJ0asNXV9Y3AAAM: Upgrade to websocket successful
+wj4iYxJ0asNXV9Y3AAAM: Received packet MESSAGE data 0
+INFO:engineio.server:wj4iYxJ0asNXV9Y3AAAM: Received packet MESSAGE data 0
+tLNxgOy7S0jSNRR_AAAN is entering room user_1 [/]
+INFO:socketio.server:tLNxgOy7S0jSNRR_AAAN is entering room user_1 [/]
+emitting event "connected" to tLNxgOy7S0jSNRR_AAAN [/]
+INFO:socketio.server:emitting event "connected" to tLNxgOy7S0jSNRR_AAAN [/]
+wj4iYxJ0asNXV9Y3AAAM: Sending packet MESSAGE data 2["connected",{"status":"success"}]
+INFO:engineio.server:wj4iYxJ0asNXV9Y3AAAM: Sending packet MESSAGE data 2["connected",{"status":"success"}]
+wj4iYxJ0asNXV9Y3AAAM: Sending packet MESSAGE data 0{"sid":"tLNxgOy7S0jSNRR_AAAN"}
+INFO:engineio.server:wj4iYxJ0asNXV9Y3AAAM: Sending packet MESSAGE data 0{"sid":"tLNxgOy7S0jSNRR_AAAN"}
+DpI17JBmkRYgqb0BAAAK: Sending packet PING data None
+INFO:engineio.server:DpI17JBmkRYgqb0BAAAK: Sending packet PING data None
+DpI17JBmkRYgqb0BAAAK: Received packet PONG data 
+INFO:engineio.server:DpI17JBmkRYgqb0BAAAK: Received packet PONG data 
+✅ Ping OK (última: 0.0s atrás)

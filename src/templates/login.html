@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Family Guardian 360°{% endblock %}
+
+{% block body %}
+<div class="auth-container">
+    <div class="auth-box">
+        <div class="auth-logo">
+            <div class="logo-circle">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+        </div>
+        <div class="auth-header">
+            <h1>FAMILY GUARDIAN 360°</h1>
+            <p class="subtitle">Sistema Profissional de Gestão Familiar</p>
+            <p class="welcome-text">Bem-vindo de volta! Faça login para continuar.</p>
+        </div>
+        
+        <form id="loginForm" class="auth-form">
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope"></i> Email</label>
+                <input type="email" id="email" name="email" required placeholder="seu@email.com">
+            </div>
+            
+            <div class="form-group">
+                <label for="password"><i class="fas fa-lock"></i> Senha</label>
+                <input type="password" id="password" name="password" required placeholder="••••••••">
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-sign-in-alt"></i> Entrar
+            </button>
+            
+            <div class="auth-footer">
+                <p>Não tem uma conta? <a href="{{ url_for('register') }}">Cadastre-se</a></p>
+            </div>
+        </form>
+        
+        <div class="credits">
+            <p>Desenvolvido por <strong>João Layon</strong> - Desenvolvedor Full Stack</p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+    
+    const formData = {
+        email: document.getElementById('email').value.trim(),
+        password: document.getElementById('password').value
+    };
+    
+    try {
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ ' + data.message);
+            window.location.href = data.redirect;
+        } else {
+            alert('❌ ' + data.message);
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+    } catch (error) {
+        console.error('Erro no login:', error);
+        alert('❌ Erro ao fazer login. Verifique sua conexão e tente novamente.');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+    }
+});
+</script>
+{% endblock %}

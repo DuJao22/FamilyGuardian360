@@ -1,0 +1,50 @@
+2025-11-20T06:32:24.217841165Z       Traceback (most recent call last):
+2025-11-20T06:32:24.217844526Z         File "/opt/render/project/src/.venv/lib/python3.13/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 389, in <module>
+2025-11-20T06:32:24.217847286Z           main()
+2025-11-20T06:32:24.217850016Z           ~~~~^^
+2025-11-20T06:32:24.217852836Z         File "/opt/render/project/src/.venv/lib/python3.13/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 373, in main
+2025-11-20T06:32:24.217855696Z           json_out["return_val"] = hook(**hook_input["kwargs"])
+2025-11-20T06:32:24.217858506Z                                    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-20T06:32:24.217861816Z         File "/opt/render/project/src/.venv/lib/python3.13/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 143, in get_requires_for_build_wheel
+2025-11-20T06:32:24.217864586Z           return hook(config_settings)
+2025-11-20T06:32:24.217867406Z         File "/tmp/pip-build-env-6wfoj9e4/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 331, in get_requires_for_build_wheel
+2025-11-20T06:32:24.217870236Z           return self._get_build_requires(config_settings, requirements=[])
+2025-11-20T06:32:24.217873126Z                  ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-20T06:32:24.217876786Z         File "/tmp/pip-build-env-6wfoj9e4/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 301, in _get_build_requires
+2025-11-20T06:32:24.217879567Z           self.run_setup()
+2025-11-20T06:32:24.217882336Z           ~~~~~~~~~~~~~~^^
+2025-11-20T06:32:24.217885667Z         File "/tmp/pip-build-env-6wfoj9e4/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 317, in run_setup
+2025-11-20T06:32:24.217888517Z           exec(code, locals())
+2025-11-20T06:32:24.217899507Z           ~~~~^^^^^^^^^^^^^^^^
+2025-11-20T06:32:24.217901387Z         File "<string>", line 54, in <module>
+2025-11-20T06:32:24.217903147Z         File "/tmp/pip-install-qpv09c16/gevent_200590d7306746da89c117e79f88856b/_setuputils.py", line 249, in cythonize1
+2025-11-20T06:32:24.217904807Z           new_ext = cythonize(
+2025-11-20T06:32:24.217906467Z                     ~~~~~~~~~^
+2025-11-20T06:32:24.217933368Z               [ext],
+2025-11-20T06:32:24.217935368Z               ^^^^^^
+2025-11-20T06:32:24.217937098Z           ...<46 lines>...
+2025-11-20T06:32:24.217939168Z               # cache="build/cycache",
+2025-11-20T06:32:24.217940888Z               ^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-20T06:32:24.217942628Z           )[0]
+2025-11-20T06:32:24.217944298Z           ^
+2025-11-20T06:32:24.217945988Z         File "/tmp/pip-build-env-6wfoj9e4/overlay/lib/python3.13/site-packages/Cython/Build/Dependencies.py", line 1153, in cythonize
+2025-11-20T06:32:24.217947698Z           cythonize_one(*args)
+2025-11-20T06:32:24.217949328Z           ~~~~~~~~~~~~~^^^^^^^
+2025-11-20T06:32:24.217951088Z         File "/tmp/pip-build-env-6wfoj9e4/overlay/lib/python3.13/site-packages/Cython/Build/Dependencies.py", line 1297, in cythonize_one
+2025-11-20T06:32:24.217952798Z           raise CompileError(None, pyx_file)
+2025-11-20T06:32:24.217956718Z       Cython.Compiler.Errors.CompileError: src/gevent/libev/corecext.pyx
+2025-11-20T06:32:24.217958489Z       [end of output]
+2025-11-20T06:32:24.217960209Z   
+2025-11-20T06:32:24.217962779Z   note: This error originates from a subprocess, and is likely not a problem with pip.
+2025-11-20T06:32:24.346514912Z 
+2025-11-20T06:32:24.346539773Z [notice] A new release of pip is available: 25.1.1 -> 25.3
+2025-11-20T06:32:24.346542453Z [notice] To update, run: pip install --upgrade pip
+2025-11-20T06:32:24.347946541Z error: subprocess-exited-with-error
+2025-11-20T06:32:24.347957701Z 
+2025-11-20T06:32:24.347961061Z × Getting requirements to build wheel did not run successfully.
+2025-11-20T06:32:24.347963821Z │ exit code: 1
+2025-11-20T06:32:24.347967071Z ╰─> See above for output.
+2025-11-20T06:32:24.347969691Z 
+2025-11-20T06:32:24.347973242Z note: This error originates from a subprocess, and is likely not a problem with pip.
+2025-11-20T06:32:24.529963379Z ==> Build failed 😞
+2025-11-20T06:32:24.529977459Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

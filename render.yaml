@@ -1,0 +1,12 @@
+# Family Guardian 360° - Configuração para Deploy no Render
+# Desenvolvido por: João Layon - Desenvolvedor Full Stack
+
+services:
+  - type: web
+    name: family-guardian-360
+    env: python
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: cd src && gunicorn --bind 0.0.0.0:$PORT --workers 1 --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker --timeout 120 app:app
+    envVars:
+      - key: SESSION_SECRET
+        generateValue: true
