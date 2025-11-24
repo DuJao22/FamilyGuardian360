@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Mapa - Family Guardian 360°{% endblock %}
+
+{% block body %}
+<div class="app-container">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-shield-alt"></i> FAMILY GUARDIAN 360°</h2>
+        </div>
+
+        <ul class="sidebar-menu">
+            <li>
+                <a href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+            </li>
+            <li class="active">
+                <a href="{{ url_for('map_view') }}">
+                    <i class="fas fa-map-marked-alt"></i> Mapa
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('messages') }}">
+                    <i class="fas fa-comments"></i> Mensagens
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('settings') }}">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <p>Desenvolvido por<br><strong>João Layon</strong><br>Desenvolvedor Full Stack</p>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="topbar-title">
+                <h1><i class="fas fa-map-marked-alt"></i> Mapa em Tempo Real</h1>
+                <p class="topbar-subtitle">Visualize a localização de todos os membros da família</p>
+            </div>
+            <div class="user-info" style="position: absolute; right: 80px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 8px;">
+                <span id="userTypeIcon" style="font-size: 18px;"></span>
+                <span id="userName" style="font-size: 14px; font-weight: 500;">Carregando...</span>
+            </div>
+            <div class="map-controls">
+                <button class="btn btn-sm btn-primary" onclick="centerOnMe()">
+                    <i class="fas fa-crosshairs"></i> <span class="hide-mobile">Minha Localização</span>
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="refreshLocations()">
+                    <i class="fas fa-sync-alt"></i> <span class="hide-mobile">Atualizar</span>
+                </button>
+                <button class="btn btn-sm btn-success" onclick="showAddZoneModal()">
+                    <i class="fas fa-shield-alt"></i> <span class="hide-mobile">Zona Segura</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="map-wrapper">
+            <div class="user-selector-panel">
+                <div class="user-selector-header">
+                    <h3><i class="fas fa-users"></i> Focar em:</h3>
+                    <button class="btn-icon" onclick="toggleUserSelector()" title="Minimizar">
+                        <i class="fas fa-chevron-up" id="selectorToggleIcon"></i>
+                    </button>
+                </div>
+                <div class="user-selector-content" id="userSelectorContent">
+                    <div class="user-chips" id="userChips">
+                        <p class="text-muted">Carregando membros...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div id="mainMap"></div>
+
+                <div class="map-floating-controls">
+                    <button class="floating-btn" onclick="centerOnMe()" title="Centralizar em mim">
+                        <i class="fas fa-street-view"></i>
+                    </button>
+                    <button class="floating-btn" onclick="showAllMembers()" title="Ver todos">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button class="floating-btn" onclick="showAddZoneModal()" title="Adicionar zona segura">
+                        <i class="fas fa-shield-alt"></i>
+                    </button>
+                </div>
+
+                <div class="map-legend">
+                    <div class="legend-header">
+                        <h4><i class="fas fa-list"></i> Membros</h4>
+                        <button class="btn-icon" onclick="toggleLegend()">
+                            <i class="fas fa-chevron-down" id="legendToggleIcon"></i>
+                        </button>
+                    </div>
+                    <div class="legend-content" id="legendContent">
+                        <div id="membersList">
+                            <p class="text-muted">Carregando...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script>
+// Inicializar geofencing ao carregar
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof initGeofencing === 'function') {
+        initGeofencing();
+    }
+});
+
+// Ajustar mapa ao redimensionar janela
+window.addEventListener('resize', function() {
+    if (mainMap) {
+        setTimeout(() => mainMap.invalidateSize(), 100);
+    }
+});
+</script>
+{% endblock %}

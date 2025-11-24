@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Mensagens - Family Guardian 360°{% endblock %}
+
+{% block body %}
+<div class="app-container">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-shield-alt"></i> FAMILY GUARDIAN 360°</h2>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li>
+                <a href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('map_view') }}">
+                    <i class="fas fa-map-marked-alt"></i> Mapa
+                </a>
+            </li>
+            <li class="active">
+                <a href="{{ url_for('messages') }}">
+                    <i class="fas fa-comments"></i> Mensagens
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('settings') }}">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <p>Desenvolvido por<br><strong>João Layon</strong><br>Desenvolvedor Full Stack</p>
+        </div>
+    </nav>
+    
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="topbar-title">
+                <h1><i class="fas fa-comments"></i> Central de Mensagens</h1>
+                <p class="topbar-subtitle">Converse com sua família em tempo real</p>
+            </div>
+            <div class="user-info">
+                <span id="userTypeIcon" style="margin-right: 8px; font-size: 18px;"></span>
+                <span id="userName">Carregando...</span>
+                <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Avatar" class="avatar">
+            </div>
+        </div>
+        
+        <div class="messages-container">
+            <div class="messages-list" id="messagesList">
+                <p class="text-muted text-center">Carregando mensagens...</p>
+            </div>
+            
+            <div class="message-input">
+                <form id="messageForm">
+                    <input type="text" id="messageText" placeholder="Digite sua mensagem..." required>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Enviar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/messages.js') }}"></script>
+{% endblock %}

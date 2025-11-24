@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Family Guardian 360°{% endblock %}
+
+{% block body %}
+<div class="app-container">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-shield-alt"></i> FAMILY GUARDIAN 360°</h2>
+        </div>
+
+        <ul class="sidebar-menu">
+            <li class="active">
+                <a href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('map_view') }}">
+                    <i class="fas fa-map-marked-alt"></i> Mapa
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('messages') }}">
+                    <i class="fas fa-comments"></i> Mensagens
+                    <span class="badge" id="messageCount">0</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('settings') }}">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <p>Desenvolvido por<br><strong>João Layon</strong><br>Desenvolvedor Full Stack</p>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1>Dashboard</h1>
+            <div class="user-info">
+                <span id="userTypeIcon" style="margin-right: 8px; font-size: 18px;"></span>
+                <span id="userName">Carregando...</span>
+                <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Avatar" class="avatar">
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="card card-location">
+                <div class="card-header">
+                    <h3><i class="fas fa-map-marker-alt"></i> Minha Localização</h3>
+                    <span class="location-status" id="locationStatus">
+                        <i class="fas fa-circle"></i> Atualizando...
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div id="currentLocation" class="location-info">
+                        <p class="status-message"><i class="fas fa-spinner fa-spin"></i> Obtendo localização...</p>
+                    </div>
+                    <div id="miniMap" class="mini-map" style="height: 200px; margin-top: 12px; border-radius: 8px; border: 2px solid #e2e8f0; overflow: hidden;"></div>
+                </div>
+            </div>
+
+            <div class="card card-device">
+                <div class="card-header">
+                    <h3><i class="fas fa-mobile-alt"></i> Status do Dispositivo</h3>
+                    <span class="device-badge">
+                        <i class="fas fa-circle pulse-animation"></i> Conectado
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="device-status">
+                        <div class="status-item">
+                            <div class="status-icon battery-bg">
+                                <i class="fas fa-battery-full battery-icon" id="batteryIcon"></i>
+                            </div>
+                            <div class="status-details">
+                                <p class="status-value" id="batteryLevel">--</p>
+                                <p class="status-label">Bateria</p>
+                                <div class="battery-bar">
+                                    <div class="battery-fill" id="batteryFill"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon signal-bg">
+                                <i class="fas fa-signal"></i>
+                            </div>
+                            <div class="status-details">
+                                <p class="status-value online">Online</p>
+                                <p class="status-label">Conexão</p>
+                                <p class="status-time" id="lastUpdate">Atualizado agora</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-family">
+                <div class="card-header">
+                    <h3><i class="fas fa-users"></i> Minha Família</h3>
+                    <button class="btn btn-sm btn-primary" onclick="showCreateFamilyModal()">
+                        <i class="fas fa-plus"></i> Nova Família
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="familyList">
+                        <p class="text-muted">Carregando famílias...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-ai-insights">
+                <div class="card-header">
+                    <h3><i class="fas fa-brain"></i> Insights de IA</h3>
+                    <button class="btn btn-sm btn-info" onclick="refreshAIInsights()">
+                        <i class="fas fa-sync"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="ai-insights-container">
+                        <p class="text-muted">Carregando análises de IA...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-alerts">
+                <div class="card-header">
+                    <h3><i class="fas fa-bell"></i> Alertas Recentes</h3>
+                </div>
+                <div class="card-body">
+                    <div id="alertsList">
+                        <p class="text-muted">Nenhum alerta recente</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-safe-zones">
+                <div class="card-header">
+                    <h3><i class="fas fa-shield-alt"></i> Zonas Seguras</h3>
+                    <button class="btn btn-sm btn-success" onclick="showAddZoneModal()">
+                        <i class="fas fa-plus"></i> Nova Zona
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="safeZonesList">
+                        <p class="text-muted">Carregando zonas seguras...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panic-button-container">
+            <button class="panic-button" onclick="activatePanic()">
+                <i class="fas fa-exclamation-triangle"></i> EMERGÊNCIA
+            </button>
+        </div>
+    </main>
+</div>
+
+<div id="createFamilyModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('createFamilyModal')">&times;</span>
+        <h2><i class="fas fa-users"></i> Criar Nova Família</h2>
+        <form id="createFamilyForm">
+            <div class="form-group">
+                <label for="familyName">Nome da Família</label>
+                <input type="text" id="familyName" required placeholder="Ex: Família Silva">
+            </div>
+            <div class="form-group">
+                <label for="familyDescription">Descrição (opcional)</label>
+                <textarea id="familyDescription" placeholder="Breve descrição..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-check"></i> Criar Família
+            </button>
+        </form>
+    </div>
+</div>
+
+<div id="manageMembersModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <span class="close" onclick="closeModal('manageMembersModal')">&times;</span>
+        <h2 id="manageMembersTitle"><i class="fas fa-users"></i> Gerenciar Membros</h2>
+
+        <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <button class="btn btn-primary" onclick="showAddExistingUserForm()">
+                <i class="fas fa-user-plus"></i> Adicionar Usuário Existente
+            </button>
+            <button class="btn btn-success" onclick="showCreateNewUserForm()">
+                <i class="fas fa-user-plus"></i> Criar Novo Usuário
+            </button>
+        </div>
+
+        <div id="addExistingUserForm" style="display: none; padding: 20px; background: #f8fafc; border-radius: 8px; margin-bottom: 20px;">
+            <h3><i class="fas fa-envelope"></i> Adicionar Usuário Existente</h3>
+            <form id="existingUserForm">
+                <div class="form-group">
+                    <label for="existingUserEmail">Email do Usuário</label>
+                    <input type="email" id="existingUserEmail" required placeholder="usuario@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="existingUserRole">Tipo de Acesso</label>
+                    <select id="existingUserRole" required>
+                        <option value="">Selecione o tipo de acesso...</option>
+                        <option value="member">👤 Usuário Comum (Criança ou Idoso)</option>
+                        <option value="supervisor">👁️ Supervisor (Acesso Total)</option>
+                    </select>
+                    <small style="display: block; margin-top: 5px; color: #666; font-size: 0.85em;">
+                        <strong>Supervisor:</strong> Terá acesso completo a todos os membros (localização, bateria, histórico, mensagens).<br>
+                        <strong>Usuário Comum:</strong> Acesso limitado, ideal para crianças ou idosos.
+                    </small>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Adicionar à Família
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="hideAddExistingUserForm()">
+                    Cancelar
+                </button>
+            </form>
+        </div>
+
+        <div id="createNewUserForm" style="display: none; padding: 20px; background: #f0fdf4; border-radius: 8px; margin-bottom: 20px;">
+            <h3><i class="fas fa-user-plus"></i> Criar Novo Usuário</h3>
+            <form id="createNewUserForm">
+                <div class="form-group">
+                    <label for="newUserFullName">Nome Completo</label>
+                    <input type="text" id="newUserFullName" required placeholder="João Silva">
+                </div>
+                <div class="form-group">
+                    <label for="newUserCpf">CPF</label>
+                    <input type="text" id="newUserCpf" required placeholder="000.000.000-00" maxlength="14">
+                </div>
+                <div class="form-group">
+                    <label for="newUserEmail">Email</label>
+                    <input type="email" id="newUserEmail" required placeholder="usuario@email.com">
+                </div>
+                <div class="form-group">
+                    <label for="newUserPassword">Senha</label>
+                    <input type="password" id="newUserPassword" required placeholder="Senha segura" minlength="6">
+                </div>
+                <div class="form-group">
+                    <label for="newUserBirthDate">Data de Nascimento</label>
+                    <input type="date" id="newUserBirthDate" required>
+                </div>
+                <div class="form-group">
+                    <label for="newUserRole">Tipo de Acesso</label>
+                    <select id="newUserRole" required onchange="toggleUserTypeOptions()">
+                        <option value="">Selecione o tipo de acesso...</option>
+                        <option value="member">👤 Usuário Comum (Criança ou Idoso)</option>
+                        <option value="supervisor">👁️ Supervisor (Acesso Total)</option>
+                    </select>
+                    <small style="display: block; margin-top: 5px; color: #666; font-size: 0.85em;">
+                        <strong>Supervisor:</strong> Pode visualizar localização, bateria, histórico e todas as informações de todos os membros da família.<br>
+                        <strong>Usuário Comum:</strong> Possui acesso limitado, ideal para crianças ou idosos que estão sendo monitorados.
+                    </small>
+                </div>
+
+                <div id="userCategorySection" style="display: none; margin: 15px 0;">
+                    <div class="form-group">
+                        <label for="newUserCategory">Categoria do Usuário</label>
+                        <select id="newUserCategory">
+                            <option value="">Selecione a categoria...</option>
+                            <option value="filho">👶 Criança/Filho</option>
+                            <option value="idoso">👴 Idoso</option>
+                            <option value="outro">👤 Outro</option>
+                        </select>
+                        <small style="display: block; margin-top: 5px; color: #666; font-size: 0.85em;">
+                            Ajuda a identificar o tipo de pessoa sendo monitorada
+                        </small>
+                    </div>
+                </div>
+
+                <div id="supervisorInfoSection" style="display: none; background: #fff7ed; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #f59e0b;">
+                    <h4 style="margin: 0 0 10px 0; color: #92400e;">
+                        <i class="fas fa-shield-alt"></i> Permissões do Supervisor
+                    </h4>
+                    <p style="margin: 0; font-size: 0.9em; color: #78350f;">
+                        ✅ O Supervisor terá acesso <strong>completo</strong> a todos os membros da família, incluindo:<br>
+                        • 📍 Localização em tempo real<br>
+                        • 🔋 Status da bateria<br>
+                        • 📊 Histórico de localizações<br>
+                        • 💬 Mensagens<br>
+                        • ⚠️ Receber alertas de emergência
+                    </p>
+                </div>
+
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-check"></i> Criar e Adicionar à Família
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="hideCreateNewUserForm()">
+                    Cancelar
+                </button>
+            </form>
+        </div>
+
+        <div id="currentMembersList">
+            <h3><i class="fas fa-users"></i> Membros Atuais</h3>
+            <div id="membersListContainer">
+                <p class="text-muted">Carregando membros...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/live-camera.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+// Carregar safe zones no dashboard
+async function loadDashboardSafeZones() {
+    try {
+        const response = await fetch('/api/safe-zones');
+        const data = await response.json();
+        
+        const container = document.getElementById('safeZonesList');
+        
+        if (data.success && data.zones && data.zones.length > 0) {
+            let html = '';
+            data.zones.forEach(zone => {
+                const statusClass = zone.is_active ? 'status-active' : 'status-inactive';
+                const statusText = zone.is_active ? 'Ativa' : 'Inativa';
+                
+                html += `
+                    <div class="safe-zone-item">
+                        <div class="zone-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="zone-info">
+                            <h4>${zone.zone_name}</h4>
+                            <p class="zone-details">
+                                <i class="fas fa-circle-dot"></i> Raio: ${zone.radius}m
+                            </p>
+                            <p class="zone-notifications">
+                                ${zone.notify_on_enter ? '<span class="badge badge-success"><i class="fas fa-bell"></i> Entrada</span>' : ''}
+                                ${zone.notify_on_exit ? '<span class="badge badge-warning"><i class="fas fa-bell"></i> Saída</span>' : ''}
+                            </p>
+                        </div>
+                        <div class="zone-actions">
+                            <span class="zone-status ${statusClass}">${statusText}</span>
+                            <button class="btn-icon-sm" onclick="removeSafeZone(${zone.id})" title="Remover">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        } else {
+            container.innerHTML = '<p class="text-muted"><i class="fas fa-info-circle"></i> Nenhuma zona segura configurada. Clique em "Nova Zona" para criar.</p>';
+        }
+    } catch (error) {
+        console.error('Erro ao carregar zonas seguras:', error);
+        document.getElementById('safeZonesList').innerHTML = '<p class="text-danger">Erro ao carregar zonas seguras</p>';
+    }
+}
+
+// Recarregar após adicionar/remover zona
+const originalAddSafeZone = window.addSafeZone;
+window.addSafeZone = async function(...args) {
+    const result = await originalAddSafeZone.apply(this, args);
+    if (result) {
+        loadDashboardSafeZones();
+    }
+    return result;
+};
+
+const originalRemoveSafeZone = window.removeSafeZone;
+window.removeSafeZone = async function(zoneId) {
+    if (confirm('Tem certeza que deseja remover esta zona segura?')) {
+        const result = await originalRemoveSafeZone(zoneId);
+        if (result) {
+            loadDashboardSafeZones();
+            alert('Zona removida com sucesso!');
+        }
+        return result;
+    }
+    return false;
+};
+
+// Carregar ao iniciar
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardSafeZones();
+});
+</script>
+{% endblock %}

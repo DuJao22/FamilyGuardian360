@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Configurações - Family Guardian 360°{% endblock %}
+
+{% block body %}
+<div class="app-container">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-shield-alt"></i> FAMILY GUARDIAN 360°</h2>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li>
+                <a href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('map_view') }}">
+                    <i class="fas fa-map-marked-alt"></i> Mapa
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('messages') }}">
+                    <i class="fas fa-comments"></i> Mensagens
+                </a>
+            </li>
+            <li class="active">
+                <a href="{{ url_for('settings') }}">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <p>Desenvolvido por<br><strong>João Layon</strong><br>Desenvolvedor Full Stack</p>
+        </div>
+    </nav>
+    
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="topbar-title">
+                <h1><i class="fas fa-cog"></i> Configurações do Sistema</h1>
+                <p class="topbar-subtitle">Personalize sua experiência e privacidade</p>
+            </div>
+            <div class="user-info">
+                <span id="userTypeIcon" style="margin-right: 8px; font-size: 18px;"></span>
+                <span id="userName">Carregando...</span>
+                <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Avatar" class="avatar">
+            </div>
+        </div>
+        
+        <div class="settings-container">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-lock"></i> Privacidade</h3>
+                </div>
+                <div class="card-body">
+                    <form id="settingsForm">
+                        <div class="form-group">
+                            <label class="switch-label">
+                                <span>Compartilhar Localização</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="shareLocation" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="switch-label">
+                                <span>Compartilhar Status da Bateria</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="shareBattery" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="switch-label">
+                                <span>Notificações Ativadas</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="notificationEnabled" checked>
+                                    <span class="slider"></span>
+                                </label>
+                            </label>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="privacyMode">Modo de Privacidade</label>
+                            <select id="privacyMode" class="form-control">
+                                <option value="full">Completo - Compartilhar tudo</option>
+                                <option value="partial">Parcial - Apenas status</option>
+                                <option value="tranquility">Tranquilidade - Mínimo de informações</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="updateInterval">Intervalo de Atualização (segundos)</label>
+                            <input type="number" id="updateInterval" class="form-control" min="3" max="60" value="5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="batteryThreshold">Alerta de Bateria Baixa (%)</label>
+                            <input type="number" id="batteryThreshold" class="form-control" min="5" max="50" value="20">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Salvar Configurações
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card" id="superAdminCard" style="display: none; border: 2px solid #dc3545;">
+                <div class="card-header" style="background: #dc3545; color: white;">
+                    <h3><i class="fas fa-user-shield"></i> Tornar-se Super Administrador</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Nenhum Super Admin encontrado no sistema!</strong></p>
+                    <p>Como primeiro usuário, você pode se promover a Super Administrador para gerenciar o sistema.</p>
+                    <button class="btn" style="background: #dc3545; color: white;" onclick="becomeSuperAdmin()">
+                        <i class="fas fa-crown"></i> Tornar-me Super Admin
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Sobre</h3>
+                </div>
+                <div class="card-body">
+                    <h4>Family Guardian 360°</h4>
+                    <p>Sistema Profissional de Gestão e Proteção Familiar</p>
+                    <p><strong>Versão:</strong> 1.0.0</p>
+                    <p><strong>Desenvolvido por:</strong> João Layon - Desenvolvedor Full Stack</p>
+                    <hr>
+                    <p class="text-muted">Sistema otimizado para deploy no Render com tecnologias Flask, SQLite3 e HTML5</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+{% endblock %}

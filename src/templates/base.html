@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta name="description" content="Family Guardian 360° - Sistema Profissional de Gestão Familiar">
+    <meta name="author" content="João Layon - Desenvolvedor Full Stack">
+    <meta name="theme-color" content="#1e3a8a">
+    <title>{% block title %}Family Guardian 360°{% endblock %}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%231e3a8a'/%3E%3Cpath d='M50 25 L35 45 L40 45 L40 65 L60 65 L60 45 L65 45 Z' fill='white'/%3E%3C/svg%3E">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Guardian 360">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% block body %}{% endblock %}
+
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+
+    <!-- Chart.js for Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- PWA -->
+    <script src="/static/js/pwa.js"></script>
+    <script src="/static/js/camera-access.js"></script>
+
+    <!-- Dark Mode -->
+    <script src="{{ url_for('static', filename='js/darkmode.js') }}"></script>
+
+    <!-- WebSocket -->
+    <script src="{{ url_for('static', filename='js/websocket.js') }}"></script>
+
+    <!-- Geofencing -->
+    <script src="{{ url_for('static', filename='js/geofencing.js') }}"></script>
+
+    <!-- Dashboard Charts -->
+    <script src="{{ url_for('static', filename='js/dashboard-charts.js') }}"></script>
+
+    <!-- Location History -->
+    <script src="{{ url_for('static', filename='js/location-history.js') }}"></script>
+
+    <!-- Main App (must load first to define global variables) -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <!-- AI Features -->
+    <script src="{{ url_for('static', filename='js/ai-features.js') }}"></script>
+
+    <script>
+        // Mobile Menu Toggle Function
+        function toggleMobileMenu() {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('active');
+            }
+        }
+
+        // Mobile Menu Setup
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar && window.innerWidth <= 768) {
+                // Close sidebar when clicking outside
+                document.addEventListener('click', function(e) {
+                    const menuToggle = document.querySelector('.mobile-menu-toggle');
+                    if (sidebar.classList.contains('active') && 
+                        !sidebar.contains(e.target) && 
+                        (!menuToggle || !menuToggle.contains(e.target))) {
+                        sidebar.classList.remove('active');
+                    }
+                });
+
+                // Close sidebar when clicking a link
+                const sidebarLinks = sidebar.querySelectorAll('a');
+                sidebarLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        sidebar.classList.remove('active');
+                    });
+                });
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

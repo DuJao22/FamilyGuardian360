@@ -1,0 +1,5 @@
+pip install -r requirements.txt
+
+https://familyguardian360-1tqx.onrender.com
+
+cd src && gunicorn --bind 0.0.0.0:$PORT --workers 1 --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker --timeout 120 app:app
