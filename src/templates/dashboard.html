@@ -149,14 +149,9 @@
             <div class="card card-safe-zones">
                 <div class="card-header">
                     <h3><i class="fas fa-shield-alt"></i> Zonas Seguras</h3>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn btn-sm btn-success" onclick="selectZoneOnMap()" title="Marcar no mapa">
-                            <i class="fas fa-map-marked-alt"></i> Marcar no Mapa
-                        </button>
-                        <button class="btn btn-sm btn-primary" onclick="showAddZoneModal()" title="Adicionar manualmente">
-                            <i class="fas fa-plus"></i> Manual
-                        </button>
-                    </div>
+                    <button class="btn btn-sm btn-primary" onclick="showAddZoneModal()">
+                        <i class="fas fa-plus"></i> Nova Zona
+                    </button>
                 </div>
                 <div class="card-body">
                     <div id="safeZonesList">

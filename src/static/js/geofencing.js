@@ -58,8 +58,8 @@ function createAddZoneModal() {
                         <label>
                             <i class="fas fa-map-marker-alt"></i> Localização
                         </label>
-                        <button type="button" class="btn btn-info btn-block" onclick="selectZoneOnMap()" style="margin-bottom: 10px;">
-                            <i class="fas fa-map-marked-alt"></i> Selecionar no Mapa
+                        <button type="button" class="btn btn-info btn-block" onclick="useCurrentLocationForZone()" style="margin-bottom: 10px;">
+                            <i class="fas fa-crosshairs"></i> Usar Localização Atual
                         </button>
                     </div>
                     
@@ -80,14 +80,14 @@ function createAddZoneModal() {
                     
                     <div class="form-group">
                         <label style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="notifyOnEnter">
+                            <input type="checkbox" id="notifyOnEnter" checked>
                             <i class="fas fa-bell"></i> Notificar ao entrar na zona
                         </label>
                     </div>
                     
                     <div class="form-group">
                         <label style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="notifyOnExit">
+                            <input type="checkbox" id="notifyOnExit" checked>
                             <i class="fas fa-bell"></i> Notificar ao sair da zona
                         </label>
                     </div>
@@ -107,6 +107,18 @@ function createAddZoneModal() {
         e.preventDefault();
         await addSafeZone();
     });
+}
+
+// Usar localização atual para preencher campos de zona
+async function useCurrentLocationForZone() {
+    const location = await getCurrentPosition();
+    if (location) {
+        document.getElementById('zoneLatitude').value = location.latitude.toFixed(6);
+        document.getElementById('zoneLongitude').value = location.longitude.toFixed(6);
+        alert('✅ Localização atual obtida com sucesso!');
+    } else {
+        alert('❌ Não foi possível obter sua localização atual. Verifique as permissões do navegador.');
+    }
 }
 
 // Adicionar zona segura
