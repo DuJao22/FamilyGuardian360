@@ -25,6 +25,155 @@ async function loadSafeZones() {
     }
 }
 
+// Mostrar modal de adicionar zona
+function showAddZoneModal() {
+    const modal = document.getElementById('addZoneModal');
+    if (!modal) {
+        createAddZoneModal();
+    }
+    
+    // Resetar formulário
+    document.getElementById('addZoneForm').reset();
+    document.getElementById('zoneRadius').value = '200';
+    
+    showModal('addZoneModal');
+}
+
+// Criar modal de adicionar zona
+function createAddZoneModal() {
+    const modalHTML = `
+        <div id="addZoneModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('addZoneModal')">&times;</span>
+                <h2><i class="fas fa-shield-alt"></i> Adicionar Zona Segura</h2>
+                <form id="addZoneForm">
+                    <div class="form-group">
+                        <label for="zoneName">
+                            <i class="fas fa-tag"></i> Nome da Zona
+                        </label>
+                        <input type="text" id="zoneName" required placeholder="Ex: Casa, Escola, Trabalho">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-map-marker-alt"></i> Localização
+                        </label>
+                        <button type="button" class="btn btn-info btn-block" onclick="selectZoneOnMap()" style="margin-bottom: 10px;">
+                            <i class="fas fa-map-marked-alt"></i> Selecionar no Mapa
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="zoneLatitude">Latitude</label>
+                        <input type="number" id="zoneLatitude" step="any" required placeholder="-19.9529905">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="zoneLongitude">Longitude</label>
+                        <input type="number" id="zoneLongitude" step="any" required placeholder="-44.0501976">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="zoneRadius">Raio (metros)</label>
+                        <input type="number" id="zoneRadius" required value="200" min="50" max="5000">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="notifyOnEnter">
+                            <i class="fas fa-bell"></i> Notificar ao entrar na zona
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="notifyOnExit">
+                            <i class="fas fa-bell"></i> Notificar ao sair da zona
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success btn-block">
+                        <i class="fas fa-check"></i> Salvar Zona
+                    </button>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Adicionar evento de submit
+    document.getElementById('addZoneForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await addSafeZone();
+    });
+}
+
+// Adicionar zona segura
+async function addSafeZone() {
+    const formData = {
+        zone_name: document.getElementById('zoneName').value,
+        latitude: parseFloat(document.getElementById('zoneLatitude').value),
+        longitude: parseFloat(document.getElementById('zoneLongitude').value),
+        radius: parseInt(document.getElementById('zoneRadius').value),
+        notify_on_enter: document.getElementById('notifyOnEnter').checked,
+        notify_on_exit: document.getElementById('notifyOnExit').checked,
+        is_active: true
+    };
+    
+    try {
+        const response = await fetch('/api/safe-zones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ Zona segura criada com sucesso!');
+            closeModal('addZoneModal');
+            await loadSafeZones();
+            
+            // Recarregar lista no dashboard se existir
+            if (typeof loadDashboardSafeZones === 'function') {
+                loadDashboardSafeZones();
+            }
+            
+            return true;
+        } else {
+            alert('❌ ' + (data.message || 'Erro ao criar zona segura'));
+            return false;
+        }
+    } catch (error) {
+        console.error('Erro ao adicionar zona segura:', error);
+        alert('❌ Erro ao adicionar zona segura');
+        return false;
+    }
+}
+
+// Remover zona segura
+async function removeSafeZone(zoneId) {
+    try {
+        const response = await fetch(`/api/safe-zones/${zoneId}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            await loadSafeZones();
+            return true;
+        } else {
+            alert('❌ ' + (data.message || 'Erro ao remover zona'));
+            return false;
+        }
+    } catch (error) {
+        console.error('Erro ao remover zona:', error);
+        return false;
+    }
+}
+
 // Renderiza zonas seguras no mapa
 function renderSafeZonesOnMap() {
     if (!mainMap) return;

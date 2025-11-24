@@ -476,6 +476,8 @@ img[class*="avatar"],
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
     overflow-y: auto;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content {
@@ -488,6 +490,18 @@ img[class*="avatar"],
     box-shadow: var(--shadow-lg);
     max-height: 90vh;
     overflow-y: auto;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .close {
@@ -496,10 +510,73 @@ img[class*="avatar"],
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    transition: all 0.3s;
 }
 
 .close:hover {
-    color: black;
+    color: var(--danger-color);
+    transform: rotate(90deg);
+}
+
+.btn-block {
+    width: 100%;
+    display: block;
+}
+
+#addZoneModal h2 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#addZoneModal .form-group {
+    margin-bottom: 15px;
+}
+
+#addZoneModal label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+#addZoneModal input[type="text"],
+#addZoneModal input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+#addZoneModal input[type="text"]:focus,
+#addZoneModal input[type="number"]:focus {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+}
+
+#addZoneModal input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+#addZoneModal .btn-info {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    color: white;
+}
+
+#addZoneModal .btn-info:hover {
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+    transform: translateY(-2px);
+}
+
+#addZoneModal .btn-success {
+    margin-top: 10px;
 }
 
 .map-container {
