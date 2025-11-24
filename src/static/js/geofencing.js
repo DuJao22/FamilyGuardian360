@@ -16,12 +16,23 @@ async function loadSafeZones() {
         const response = await fetch('/api/safe-zones');
         const data = await response.json();
         
-        if (data.success) {
+        console.log('Zonas carregadas:', data);
+        
+        if (data.success && data.zones) {
             safeZones = data.zones;
             renderSafeZonesOnMap();
+            
+            // Atualizar lista no dashboard se a função existir
+            if (typeof loadDashboardSafeZones === 'function') {
+                loadDashboardSafeZones();
+            }
+        } else {
+            console.warn('Nenhuma zona segura encontrada');
+            safeZones = [];
         }
     } catch (error) {
         console.error('Erro ao carregar zonas seguras:', error);
+        safeZones = [];
     }
 }
 

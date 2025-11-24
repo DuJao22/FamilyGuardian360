@@ -643,6 +643,7 @@ function updateLastUpdateTime() {
 
 // Funcionalidades de câmera foram removidas do sistema
 
+// Carregar ao iniciar
 document.addEventListener('DOMContentLoaded', function() {
     loadUserProfile();
     loadFamilies();
@@ -678,7 +679,21 @@ document.addEventListener('DOMContentLoaded', function() {
     updateLastUpdateTime();
     setInterval(updateBatteryStatus, 30000);
     setInterval(updateLastUpdateTime, 1000);
+
+    console.log('Dashboard carregado, iniciando carregamento de zonas...');
+
+    // Aguardar um pouco para garantir que todos os elementos estejam prontos
+    setTimeout(() => {
+        loadDashboardSafeZones();
+    }, 500);
 });
+
+// Também tentar carregar quando a página estiver completamente carregada
+window.addEventListener('load', function() {
+    console.log('Window load completo');
+    loadDashboardSafeZones();
+});
+
 
 async function managePermissions(familyId, familyName) {
     try {
@@ -709,10 +724,10 @@ async function managePermissions(familyId, familyName) {
                     <small>${member.email}</small>
                 </div>
                 <div class="permission-actions">
-                    <button class="btn btn-sm btn-success" onclick="grantAllPermissions(${familyId}, ${member.user_id}, '${member.full_name}')">
+                    <button class="btn-sm btn-success" onclick="grantAllPermissions(${familyId}, ${member.user_id}, '${member.full_name}')">
                         <i class="fas fa-check-circle"></i> Conceder Todas
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="revokeAllPermissions(${familyId}, ${member.user_id}, '${member.full_name}')">
+                    <button class="btn-sm btn-danger" onclick="revokeAllPermissions(${familyId}, ${member.user_id}, '${member.full_name}')">
                         <i class="fas fa-times-circle"></i> Revogar Todas
                     </button>
                 </div>
@@ -1249,84 +1264,66 @@ window.addEventListener('locationUpdated', function() {
     // updateFamilyLocations();
 });
 
-// Ensure the map is initialized and updated when the DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    loadUserProfile();
-    loadFamilies();
-    loadAlerts();
-    initMiniMap();
+// Carregar safe zones no dashboard
+async function loadDashboardSafeZones() {
+    const container = document.getElementById('safeZonesList');
 
-    // Get user's current location and start watching for updates
-    if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(function(position) {
-            window.currentPosition = position;
-            // Dispatch a custom event when location is updated
-            const event = new CustomEvent('locationUpdated', { detail: position });
-            window.dispatchEvent(event);
-        }, function(error) {
-            console.error('Erro ao obter localização:', error);
-            // Optionally, initialize map even if geolocation fails, but updateMiniMap might not work as expected.
-            // initMiniMap(); // Already called in initMiniMap
-        }, {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-        });
-    } else {
-        console.log('Geolocalização não é suportada por este navegador.');
-        // initMiniMap(); // Already called in initMiniMap
+    if (!container) {
+        console.warn('Container safeZonesList não encontrado');
+        return;
     }
 
-    // Update family locations periodically
-    setInterval(updateFamilyLocations, 5000);
+    // Mostrar loading
+    container.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Carregando zonas seguras...</p>';
 
-    // Update alerts periodically
-    setInterval(loadAlerts, 10000);
-
-    // Update battery status and timestamp
-    updateBatteryStatus();
-    updateLastUpdateTime();
-    setInterval(updateBatteryStatus, 30000);
-    setInterval(updateLastUpdateTime, 1000);
-});
-
-// Function to get initial battery status
-async function updateBatteryStatus() {
     try {
-        if ('getBattery' in navigator) {
-            const battery = await navigator.getBattery();
-            const level = Math.round(battery.level * 100);
-            document.getElementById('batteryLevel').textContent = level + '%';
+        const response = await fetch('/api/safe-zones');
+        const data = await response.json();
 
-            const batteryFill = document.getElementById('batteryFill');
-            if (batteryFill) {
-                batteryFill.style.width = level + '%';
-                if (level <= 20) {
-                    batteryFill.style.background = 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)';
-                } else if (level <= 50) {
-                    batteryFill.style.background = 'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)';
-                } else {
-                    batteryFill.style.background = 'linear-gradient(90deg, #10b981 0%, #059669 100%)';
-                }
-            }
+        console.log('Resposta da API de zonas:', data);
 
-            const batteryIcon = document.getElementById('batteryIcon');
-            if (batteryIcon) {
-                if (level > 75) {
-                    batteryIcon.className = 'fas fa-battery-full battery-icon';
-                } else if (level > 50) {
-                    batteryIcon.className = 'fas fa-battery-three-quarters battery-icon';
-                } else if (level > 25) {
-                    batteryIcon.className = 'fas fa-battery-half battery-icon';
-                } else {
-                    batteryIcon.className = 'fas fa-battery-quarter battery-icon';
-                }
-            }
+        if (data.success && data.zones && data.zones.length > 0) {
+            let html = '';
+            data.zones.forEach(zone => {
+                const statusClass = zone.is_active ? 'status-active' : 'status-inactive';
+                const statusText = zone.is_active ? 'Ativa' : 'Inativa';
+
+                html += `
+                    <div class="safe-zone-item">
+                        <div class="zone-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div class="zone-info">
+                            <h4>${zone.zone_name || 'Zona sem nome'}</h4>
+                            <p class="zone-details">
+                                <i class="fas fa-circle-dot"></i> Raio: ${zone.radius || 100}m
+                            </p>
+                            <p class="zone-notifications">
+                                ${zone.notify_on_enter ? '<span class="badge badge-success"><i class="fas fa-bell"></i> Entrada</span>' : ''}
+                                ${zone.notify_on_exit ? '<span class="badge badge-warning"><i class="fas fa-bell"></i> Saída</span>' : ''}
+                            </p>
+                        </div>
+                        <div class="zone-actions">
+                            <span class="zone-status ${statusClass}">${statusText}</span>
+                            <button class="btn-icon-sm" onclick="removeSafeZone(${zone.id})" title="Remover">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            console.log('Zonas renderizadas:', data.zones.length);
+        } else {
+            container.innerHTML = '<p class="text-muted"><i class="fas fa-info-circle"></i> Nenhuma zona segura configurada. Clique em "Nova Zona" para criar.</p>';
+            console.log('Nenhuma zona encontrada');
         }
     } catch (error) {
-        console.log('Battery API não suportada');
+        console.error('Erro ao carregar zonas seguras:', error);
+        container.innerHTML = '<p class="text-danger"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar zonas seguras. Tente novamente.</p>';
     }
 }
+
 
 // Variável para armazenar círculo temporário no mapa
 let tempZoneCircle = null;

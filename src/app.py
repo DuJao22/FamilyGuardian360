@@ -1637,17 +1637,30 @@ def manage_safe_zones():
     user_id = session['user_id']
 
     if request.method == 'GET':
-        conn = get_db_connection()
-        zones = conn.execute(
-            'SELECT * FROM safe_zones WHERE user_id = ? AND is_active = 1',
-            (user_id,)
-        ).fetchall()
-        conn.close()
+        try:
+            conn = get_db_connection()
+            zones = conn.execute(
+                'SELECT * FROM safe_zones WHERE user_id = ? AND is_active = 1 ORDER BY created_at DESC',
+                (user_id,)
+            ).fetchall()
+            conn.close()
 
-        return jsonify({
-            'success': True,
-            'zones': [dict(zone) for zone in zones]
-        })
+            zones_list = [dict(zone) for zone in zones]
+            print(f"Zonas carregadas para usuário {user_id}: {len(zones_list)} zonas")
+            
+            return jsonify({
+                'success': True,
+                'zones': zones_list,
+                'count': len(zones_list)
+            })
+        except Exception as e:
+            print(f"Erro ao carregar zonas: {e}")
+            return jsonify({
+                'success': False,
+                'zones': [],
+                'count': 0,
+                'error': str(e)
+            }), 500
 
     elif request.method == 'POST':
         data = request.get_json()
