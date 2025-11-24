@@ -15,6 +15,8 @@ import threading
 import csv
 import io
 import json
+import hashlib
+import hmac
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -315,6 +317,12 @@ def messages():
 def settings():
     """Página de configurações"""
     return render_template('settings.html')
+
+@app.route('/subscription')
+@login_required
+def subscription_page():
+    """Página de gerenciamento de assinatura"""
+    return render_template('subscription.html')
 
 @app.route('/admin')
 @super_admin_required
@@ -2388,6 +2396,280 @@ def configure_smart_alerts():
     except Exception as e:
         conn.close()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+# ==================== KIRVANO WEBHOOK & ASSINATURAS ====================
+
+@app.route('/api/subscription/create', methods=['POST'])
+@login_required
+def create_subscription():
+    """Cria uma nova assinatura para o usuário"""
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    
+    # Verificar se já tem assinatura ativa
+    existing = conn.execute(
+        'SELECT * FROM subscriptions WHERE user_id = ? AND status IN ("active", "pending")',
+        (user_id,)
+    ).fetchone()
+    
+    if existing:
+        conn.close()
+        return jsonify({
+            'success': False,
+            'message': 'Você já possui uma assinatura ativa'
+        }), 400
+    
+    # Criar nova assinatura
+    cursor = conn.execute(
+        '''INSERT INTO subscriptions (user_id, plan_name, plan_value, status)
+           VALUES (?, ?, ?, ?)''',
+        (user_id, 'Mensal', 29.90, 'pending')
+    )
+    subscription_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    # Aqui você retornaria o link de pagamento da Kirvano
+    # Por enquanto, retorno um objeto básico
+    return jsonify({
+        'success': True,
+        'subscription_id': subscription_id,
+        'plan_value': 29.90,
+        'message': 'Assinatura criada. Proceda com o pagamento.'
+    })
+
+@app.route('/api/subscription/status', methods=['GET'])
+@login_required
+def get_subscription_status():
+    """Retorna status da assinatura do usuário"""
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    subscription = conn.execute(
+        'SELECT * FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+        (user_id,)
+    ).fetchone()
+    conn.close()
+    
+    if not subscription:
+        return jsonify({
+            'success': True,
+            'has_subscription': False,
+            'status': 'none'
+        })
+    
+    return jsonify({
+        'success': True,
+        'has_subscription': True,
+        'subscription': dict(subscription)
+    })
+
+@app.route('/webhook/kirvano', methods=['POST'])
+def kirvano_webhook():
+    """Processa webhooks da Kirvano"""
+    try:
+        # Pegar dados do webhook
+        payload = request.get_data()
+        signature = request.headers.get('X-Kirvano-Signature', '')
+        
+        # IMPORTANTE: Configure sua chave secreta da Kirvano
+        # Adicione KIRVANO_WEBHOOK_SECRET nas variáveis de ambiente
+        webhook_secret = os.environ.get('KIRVANO_WEBHOOK_SECRET', '')
+        
+        # Validar assinatura do webhook (se configurado)
+        if webhook_secret:
+            expected_signature = hmac.new(
+                webhook_secret.encode('utf-8'),
+                payload,
+                hashlib.sha256
+            ).hexdigest()
+            
+            if not hmac.compare_digest(signature, expected_signature):
+                print('⚠️ Assinatura do webhook inválida')
+                return jsonify({'error': 'Invalid signature'}), 401
+        
+        data = request.get_json()
+        event_type = data.get('event_type')
+        
+        print(f'📬 Webhook Kirvano recebido: {event_type}')
+        
+        conn = get_db_connection()
+        
+        # Registrar webhook
+        conn.execute(
+            '''INSERT INTO webhook_logs (event_type, event_data, received_at)
+               VALUES (?, ?, ?)''',
+            (event_type, json.dumps(data), now_brasilia())
+        )
+        conn.commit()
+        
+        # Processar diferentes tipos de eventos
+        if event_type == 'subscription.created':
+            handle_subscription_created(conn, data)
+        elif event_type == 'subscription.activated':
+            handle_subscription_activated(conn, data)
+        elif event_type == 'payment.approved':
+            handle_payment_approved(conn, data)
+        elif event_type == 'payment.failed':
+            handle_payment_failed(conn, data)
+        elif event_type == 'subscription.cancelled':
+            handle_subscription_cancelled(conn, data)
+        elif event_type == 'subscription.expired':
+            handle_subscription_expired(conn, data)
+        
+        conn.close()
+        
+        return jsonify({'success': True}), 200
+        
+    except Exception as e:
+        print(f'❌ Erro ao processar webhook: {e}')
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+def handle_subscription_created(conn, data):
+    """Processa criação de assinatura"""
+    kirvano_sub_id = data.get('subscription_id')
+    customer_email = data.get('customer', {}).get('email')
+    
+    # Encontrar usuário pelo email
+    user = conn.execute('SELECT id FROM users WHERE email = ?', (customer_email,)).fetchone()
+    
+    if user:
+        conn.execute(
+            '''UPDATE subscriptions 
+               SET kirvano_subscription_id = ?, kirvano_customer_id = ?, updated_at = ?
+               WHERE user_id = ? AND status = "pending"''',
+            (kirvano_sub_id, data.get('customer_id'), now_brasilia(), user['id'])
+        )
+        conn.commit()
+        print(f'✅ Assinatura criada para usuário {user["id"]}')
+
+def handle_subscription_activated(conn, data):
+    """Processa ativação de assinatura"""
+    kirvano_sub_id = data.get('subscription_id')
+    
+    # Calcular datas
+    start_date = now_brasilia()
+    end_date = start_date + timedelta(days=30)
+    next_billing = end_date
+    
+    conn.execute(
+        '''UPDATE subscriptions 
+           SET status = "active", 
+               start_date = ?, 
+               end_date = ?, 
+               next_billing_date = ?,
+               updated_at = ?
+           WHERE kirvano_subscription_id = ?''',
+        (start_date, end_date, next_billing, now_brasilia(), kirvano_sub_id)
+    )
+    conn.commit()
+    print(f'✅ Assinatura {kirvano_sub_id} ativada')
+
+def handle_payment_approved(conn, data):
+    """Processa pagamento aprovado"""
+    kirvano_sub_id = data.get('subscription_id')
+    payment_id = data.get('payment_id')
+    amount = data.get('amount', 29.90)
+    
+    subscription = conn.execute(
+        'SELECT * FROM subscriptions WHERE kirvano_subscription_id = ?',
+        (kirvano_sub_id,)
+    ).fetchone()
+    
+    if subscription:
+        # Registrar pagamento
+        conn.execute(
+            '''INSERT INTO payment_history 
+               (subscription_id, user_id, amount, status, kirvano_payment_id, paid_at)
+               VALUES (?, ?, ?, "paid", ?, ?)''',
+            (subscription['id'], subscription['user_id'], amount, payment_id, now_brasilia())
+        )
+        
+        # Renovar assinatura
+        new_end_date = now_brasilia() + timedelta(days=30)
+        new_billing_date = new_end_date
+        
+        conn.execute(
+            '''UPDATE subscriptions 
+               SET status = "active", 
+                   end_date = ?, 
+                   next_billing_date = ?,
+                   updated_at = ?
+               WHERE id = ?''',
+            (new_end_date, new_billing_date, now_brasilia(), subscription['id'])
+        )
+        conn.commit()
+        print(f'✅ Pagamento aprovado para assinatura {subscription["id"]}')
+
+def handle_payment_failed(conn, data):
+    """Processa falha no pagamento"""
+    kirvano_sub_id = data.get('subscription_id')
+    
+    subscription = conn.execute(
+        'SELECT * FROM subscriptions WHERE kirvano_subscription_id = ?',
+        (kirvano_sub_id,)
+    ).fetchone()
+    
+    if subscription:
+        conn.execute(
+            '''INSERT INTO payment_history 
+               (subscription_id, user_id, amount, status, kirvano_payment_id)
+               VALUES (?, ?, ?, "failed", ?)''',
+            (subscription['id'], subscription['user_id'], 29.90, data.get('payment_id'))
+        )
+        
+        # Suspender assinatura após falha
+        conn.execute(
+            'UPDATE subscriptions SET status = "suspended", updated_at = ? WHERE id = ?',
+            (now_brasilia(), subscription['id'])
+        )
+        conn.commit()
+        print(f'⚠️ Pagamento falhou para assinatura {subscription["id"]}')
+
+def handle_subscription_cancelled(conn, data):
+    """Processa cancelamento de assinatura"""
+    kirvano_sub_id = data.get('subscription_id')
+    
+    conn.execute(
+        'UPDATE subscriptions SET status = "cancelled", updated_at = ? WHERE kirvano_subscription_id = ?',
+        (now_brasilia(), kirvano_sub_id)
+    )
+    conn.commit()
+    print(f'🚫 Assinatura {kirvano_sub_id} cancelada')
+
+def handle_subscription_expired(conn, data):
+    """Processa expiração de assinatura"""
+    kirvano_sub_id = data.get('subscription_id')
+    
+    conn.execute(
+        'UPDATE subscriptions SET status = "expired", updated_at = ? WHERE kirvano_subscription_id = ?',
+        (now_brasilia(), kirvano_sub_id)
+    )
+    conn.commit()
+    print(f'⏰ Assinatura {kirvano_sub_id} expirada')
+
+@app.route('/api/admin/subscriptions', methods=['GET'])
+@super_admin_required
+def list_all_subscriptions():
+    """Lista todas as assinaturas - apenas Super Admin"""
+    conn = get_db_connection()
+    
+    subscriptions = conn.execute(
+        '''SELECT s.*, u.full_name, u.email 
+           FROM subscriptions s
+           INNER JOIN users u ON s.user_id = u.id
+           ORDER BY s.created_at DESC'''
+    ).fetchall()
+    
+    conn.close()
+    
+    return jsonify({
+        'success': True,
+        'subscriptions': [dict(s) for s in subscriptions]
+    })
 
 # FUNCIONALIDADE DE CÂMERA DESABILITADA
 # @app.route('/api/camera/upload', methods=['POST'])

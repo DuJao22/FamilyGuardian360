@@ -1,0 +1,208 @@
+
+{% extends "base.html" %}
+
+{% block title %}Assinatura - Family Guardian 360°{% endblock %}
+
+{% block body %}
+<div class="app-container">
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2><i class="fas fa-shield-alt"></i> FAMILY GUARDIAN 360°</h2>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li>
+                <a href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('map_view') }}">
+                    <i class="fas fa-map-marked-alt"></i> Mapa
+                </a>
+            </li>
+            <li class="active">
+                <a href="{{ url_for('subscription_page') }}">
+                    <i class="fas fa-credit-card"></i> Assinatura
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('settings') }}">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            </li>
+        </ul>
+        
+        <div class="sidebar-footer">
+            <p>Desenvolvido por<br><strong>João Layon</strong><br>Desenvolvedor Full Stack</p>
+        </div>
+    </nav>
+    
+    <main class="main-content">
+        <div class="topbar">
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="topbar-title">
+                <h1><i class="fas fa-credit-card"></i> Gerenciar Assinatura</h1>
+                <p class="topbar-subtitle">Plano Mensal - R$ 29,90/mês</p>
+            </div>
+            <div class="user-info">
+                <span id="userName">Carregando...</span>
+                <img src="{{ url_for('static', filename='images/default-avatar.png') }}" alt="Avatar" class="avatar">
+            </div>
+        </div>
+        
+        <div class="settings-container">
+            <div class="card" id="subscriptionCard">
+                <div class="card-header">
+                    <h3><i class="fas fa-info-circle"></i> Status da Assinatura</h3>
+                </div>
+                <div class="card-body" id="subscriptionStatus">
+                    <div style="text-align: center; padding: 20px;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 32px;"></i>
+                        <p>Carregando informações da assinatura...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-list"></i> Benefícios do Plano</h3>
+                </div>
+                <div class="card-body">
+                    <ul style="list-style: none; padding: 0;">
+                        <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-check" style="color: #10b981; margin-right: 10px;"></i>
+                            Rastreamento em tempo real ilimitado
+                        </li>
+                        <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-check" style="color: #10b981; margin-right: 10px;"></i>
+                            Zonas seguras ilimitadas
+                        </li>
+                        <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-check" style="color: #10b981; margin-right: 10px;"></i>
+                            Alertas inteligentes com IA
+                        </li>
+                        <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-check" style="color: #10b981; margin-right: 10px;"></i>
+                            Histórico completo de localizações
+                        </li>
+                        <li style="padding: 10px 0; border-bottom: 1px solid #eee;">
+                            <i class="fas fa-check" style="color: #10b981; margin-right: 10px;"></i>
+                            Botão de pânico/emergência
+                        </li>
+                        <li style="padding: 10px 0;">
+                            <i class="fas fa-check" style="color: #10b981; margin-right: 10px;"></i>
+                            Suporte prioritário 24/7
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+// Carregar status da assinatura
+async function loadSubscriptionStatus() {
+    try {
+        const response = await fetch('/api/subscription/status');
+        const data = await response.json();
+        
+        const statusDiv = document.getElementById('subscriptionStatus');
+        
+        if (!data.has_subscription || data.status === 'none') {
+            // Sem assinatura
+            statusDiv.innerHTML = `
+                <div style="text-align: center;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ef4444; margin-bottom: 20px;"></i>
+                    <h3>Você não possui uma assinatura ativa</h3>
+                    <p>Assine agora por apenas R$ 29,90/mês e tenha acesso a todos os recursos!</p>
+                    <button class="btn btn-primary" onclick="createSubscription()" style="margin-top: 20px;">
+                        <i class="fas fa-shopping-cart"></i> Assinar Agora
+                    </button>
+                </div>
+            `;
+        } else {
+            const sub = data.subscription;
+            const statusColor = sub.status === 'active' ? '#10b981' : 
+                              sub.status === 'pending' ? '#f59e0b' : '#ef4444';
+            const statusText = sub.status === 'active' ? 'Ativa' :
+                             sub.status === 'pending' ? 'Pendente' :
+                             sub.status === 'cancelled' ? 'Cancelada' :
+                             sub.status === 'expired' ? 'Expirada' : 'Suspensa';
+            
+            statusDiv.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px;">
+                    <div style="text-align: center; padding: 20px; background: #f9fafb; border-radius: 8px;">
+                        <i class="fas fa-circle" style="color: ${statusColor}; font-size: 12px;"></i>
+                        <h4 style="margin: 10px 0 5px 0;">Status</h4>
+                        <p style="font-size: 18px; font-weight: bold; color: ${statusColor};">${statusText}</p>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: #f9fafb; border-radius: 8px;">
+                        <i class="fas fa-calendar"></i>
+                        <h4 style="margin: 10px 0 5px 0;">Próximo Pagamento</h4>
+                        <p style="font-size: 14px;">${sub.next_billing_date ? new Date(sub.next_billing_date).toLocaleDateString('pt-BR') : 'N/A'}</p>
+                    </div>
+                    <div style="text-align: center; padding: 20px; background: #f9fafb; border-radius: 8px;">
+                        <i class="fas fa-dollar-sign"></i>
+                        <h4 style="margin: 10px 0 5px 0;">Valor</h4>
+                        <p style="font-size: 18px; font-weight: bold;">R$ ${sub.plan_value.toFixed(2)}</p>
+                    </div>
+                </div>
+                ${sub.status === 'active' ? `
+                    <button class="btn" style="background: #ef4444; color: white;" onclick="cancelSubscription()">
+                        <i class="fas fa-times"></i> Cancelar Assinatura
+                    </button>
+                ` : ''}
+            `;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar status:', error);
+        document.getElementById('subscriptionStatus').innerHTML = `
+            <div style="text-align: center; color: #ef4444;">
+                <i class="fas fa-exclamation-circle" style="font-size: 32px;"></i>
+                <p>Erro ao carregar informações da assinatura</p>
+            </div>
+        `;
+    }
+}
+
+async function createSubscription() {
+    try {
+        const response = await fetch('/api/subscription/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Assinatura criada! Você será redirecionado para o pagamento.');
+            // Aqui você redirecionaria para o link de pagamento da Kirvano
+            // window.location.href = data.payment_url;
+            loadSubscriptionStatus();
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        alert('Erro ao criar assinatura');
+    }
+}
+
+function cancelSubscription() {
+    if (confirm('Tem certeza que deseja cancelar sua assinatura?')) {
+        alert('Entre em contato com o suporte para cancelar.');
+    }
+}
+
+// Carregar ao iniciar
+document.addEventListener('DOMContentLoaded', loadSubscriptionStatus);
+</script>
+{% endblock %}

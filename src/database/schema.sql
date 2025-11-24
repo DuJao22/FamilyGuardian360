@@ -178,6 +178,54 @@ CREATE TABLE IF NOT EXISTS camera_photos (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Tabela de assinaturas
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    plan_name TEXT DEFAULT 'Mensal',
+    plan_value REAL DEFAULT 29.90,
+    status TEXT DEFAULT 'pending',
+    kirvano_subscription_id TEXT UNIQUE,
+    kirvano_customer_id TEXT,
+    start_date TIMESTAMP,
+    end_date TIMESTAMP,
+    next_billing_date TIMESTAMP,
+    payment_method TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CHECK (status IN ('pending', 'active', 'cancelled', 'expired', 'suspended'))
+);
+
+-- Tabela de histórico de webhooks
+CREATE TABLE IF NOT EXISTS webhook_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL,
+    event_data TEXT NOT NULL,
+    subscription_id INTEGER,
+    processed INTEGER DEFAULT 0,
+    error_message TEXT,
+    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    processed_at TIMESTAMP,
+    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE SET NULL
+);
+
+-- Tabela de histórico de pagamentos
+CREATE TABLE IF NOT EXISTS payment_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subscription_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    amount REAL NOT NULL,
+    status TEXT NOT NULL,
+    kirvano_payment_id TEXT,
+    payment_method TEXT,
+    paid_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CHECK (status IN ('pending', 'paid', 'failed', 'refunded'))
+);
+
 -- Índices para otimização
 CREATE INDEX IF NOT EXISTS idx_locations_user_id ON locations(user_id);
 CREATE INDEX IF NOT EXISTS idx_locations_timestamp ON locations(timestamp);
@@ -189,3 +237,7 @@ CREATE INDEX IF NOT EXISTS idx_alerts_user_id ON alerts(user_id);
 CREATE INDEX IF NOT EXISTS idx_permissions_user_id ON permissions(user_id);
 CREATE INDEX IF NOT EXISTS idx_supervisor_permissions_family_member_id ON supervisor_permissions(family_member_id);
 CREATE INDEX IF NOT EXISTS idx_supervisor_permissions_target_user_id ON supervisor_permissions(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_kirvano_subscription_id ON subscriptions(kirvano_subscription_id);
+CREATE INDEX IF NOT EXISTS idx_webhook_logs_subscription_id ON webhook_logs(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_payment_history_subscription_id ON payment_history(subscription_id);
