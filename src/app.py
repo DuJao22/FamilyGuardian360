@@ -234,70 +234,12 @@ def login():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Página de registro"""
+    """Página de registro - BLOQUEADA: Registro apenas via pagamento Kirvano ou criação por admin"""
     if request.method == 'POST':
-        try:
-            data = request.get_json()
-            if not data:
-                return jsonify({'success': False, 'message': 'Dados inválidos'}), 400
-
-            email = data.get('email', '').strip()
-            password = data.get('password', '')
-            full_name = data.get('full_name', '').strip()
-            cpf = data.get('cpf', '').strip()
-            birth_date = data.get('birth_date', '').strip()
-
-            if not all([email, password, full_name]):
-                return jsonify({'success': False, 'message': 'Nome completo, email e senha são obrigatórios'}), 400
-
-            if len(password) < 6:
-                return jsonify({'success': False, 'message': 'A senha deve ter no mínimo 6 caracteres'}), 400
-
-            if '@' not in email or '.' not in email:
-                return jsonify({'success': False, 'message': 'Email inválido'}), 400
-
-            username = email.split('@')[0]
-
-            password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-            conn = get_db_connection()
-            try:
-                existing_user = conn.execute(
-                    'SELECT id FROM users WHERE email = ? OR username = ?',
-                    (email, username)
-                ).fetchone()
-
-                if existing_user:
-                    conn.close()
-                    return jsonify({'success': False, 'message': 'Este email já está cadastrado'}), 400
-
-                cursor = conn.execute(
-                    '''INSERT INTO users (username, email, password_hash, full_name, cpf, birth_date, user_type)
-                       VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                    (username, email, password_hash, full_name, cpf, birth_date, 'member')
-                )
-                user_id = cursor.lastrowid
-
-                conn.execute(
-                    'INSERT INTO user_settings (user_id) VALUES (?)',
-                    (user_id,)
-                )
-                conn.commit()
-
-                return jsonify({
-                    'success': True,
-                    'message': 'Conta criada com sucesso! Faça login para continuar.'
-                })
-            except sqlite3.IntegrityError as e:
-                return jsonify({'success': False, 'message': f'Erro ao criar conta: Este email já está cadastrado'}), 400
-            except Exception as e:
-                print(f"Erro no registro: {e}")
-                return jsonify({'success': False, 'message': f'Erro ao criar conta: {str(e)}'}), 500
-            finally:
-                conn.close()
-        except Exception as e:
-            print(f"Erro geral no registro: {e}")
-            return jsonify({'success': False, 'message': 'Erro ao processar cadastro. Tente novamente.'}), 500
+        return jsonify({
+            'success': False, 
+            'message': 'O cadastro público está desabilitado. Para criar uma conta, realize o pagamento através da nossa plataforma Kirvano ou solicite a um administrador.'
+        }), 403
 
     return render_template('register.html')
 

@@ -20,6 +20,10 @@ The system is built on a Flask backend using pure SQLite3 for the database. The 
 
 **Feature Specifications:**
 - **Authentication:** Secure system using bcrypt.
+- **User Registration:** Public registration is disabled. New users can only be created through:
+  1. **Kirvano Payment Integration:** Automatic user creation after successful payment/subscription activation
+  2. **Administrative Creation:** Super Admins can create Family Admins, and Family Admins can create members within their families
+- **Kirvano Integration:** Full webhook integration for payment processing, subscription management, and automatic user provisioning. Handles events: subscription.created, subscription.activated, payment.approved, payment.failed, subscription.cancelled, and subscription.expired.
 - **Family Management:** Creation and administration of family units with granular permission levels.
 - **User Hierarchy:** Three access levels: Super Admin (full system control, promotes Family Admins), Family Admin (manages family members, creates users, sets permissions), and Member (basic system access). A 'Supervisor' role within a family allows specific permissions configured by the Family Admin.
 - **Geolocation & Monitoring:** Real-time location tracking and battery level monitoring with visual indicators and alerts. Map popups now display street addresses via reverse geocoding (Nominatim API) with intelligent caching to prevent rate limiting.
