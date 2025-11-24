@@ -2547,8 +2547,46 @@ def handle_subscription_created(conn, data):
         print(f'✅ Assinatura criada para usuário {user["id"]}')
 
 def handle_subscription_activated(conn, data):
-    """Processa ativação de assinatura"""
+    """Processa ativação de assinatura e cria login se necessário"""
     kirvano_sub_id = data.get('subscription_id')
+    customer_data = data.get('customer', {})
+    customer_email = customer_data.get('email')
+    customer_name = customer_data.get('name', 'Usuário')
+    
+    # Verificar se usuário existe, se não, criar
+    if customer_email:
+        user = conn.execute('SELECT id FROM users WHERE email = ?', (customer_email,)).fetchone()
+        
+        if not user:
+            print(f'🆕 Criando novo usuário para {customer_email}')
+            
+            # Gerar senha temporária
+            import secrets
+            temp_password = secrets.token_urlsafe(12)
+            password_hash = bcrypt.hashpw(temp_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            username = customer_email.split('@')[0]
+            
+            # Criar usuário
+            cursor = conn.execute(
+                '''INSERT INTO users (username, email, password_hash, full_name, user_type)
+                   VALUES (?, ?, ?, ?, ?)''',
+                (username, customer_email, password_hash, customer_name, 'member')
+            )
+            new_user_id = cursor.lastrowid
+            
+            # Criar configurações padrão
+            conn.execute('INSERT INTO user_settings (user_id) VALUES (?)', (new_user_id,))
+            
+            # Associar assinatura ao novo usuário
+            conn.execute(
+                'UPDATE subscriptions SET user_id = ? WHERE kirvano_subscription_id = ?',
+                (new_user_id, kirvano_sub_id)
+            )
+            
+            conn.commit()
+            print(f'✅ Usuário criado: {customer_email} | Senha temporária: {temp_password}')
+            # IMPORTANTE: Envie esta senha por email ao cliente!
     
     # Calcular datas
     start_date = now_brasilia()
@@ -2569,16 +2607,80 @@ def handle_subscription_activated(conn, data):
     print(f'✅ Assinatura {kirvano_sub_id} ativada')
 
 def handle_payment_approved(conn, data):
-    """Processa pagamento aprovado"""
+    """Processa pagamento aprovado e cria login se necessário"""
     kirvano_sub_id = data.get('subscription_id')
     payment_id = data.get('payment_id')
     amount = data.get('amount', 29.90)
+    customer_data = data.get('customer', {})
+    customer_email = customer_data.get('email')
+    customer_name = customer_data.get('name', 'Usuário')
     
     subscription = conn.execute(
         'SELECT * FROM subscriptions WHERE kirvano_subscription_id = ?',
         (kirvano_sub_id,)
     ).fetchone()
     
+    # Se não encontrou assinatura e tem email, criar usuário e assinatura
+    if not subscription and customer_email:
+        print(f'🆕 Criando usuário e assinatura para {customer_email}')
+        
+        # Verificar se usuário já existe
+        user = conn.execute('SELECT id FROM users WHERE email = ?', (customer_email,)).fetchone()
+        
+        if not user:
+            # Gerar senha temporária
+            import secrets
+            temp_password = secrets.token_urlsafe(12)
+            password_hash = bcrypt.hashpw(temp_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            username = customer_email.split('@')[0]
+            
+            # Criar usuário
+            cursor = conn.execute(
+                '''INSERT INTO users (username, email, password_hash, full_name, user_type)
+                   VALUES (?, ?, ?, ?, ?)''',
+                (username, customer_email, password_hash, customer_name, 'member')
+            )
+            user_id = cursor.lastrowid
+            
+            # Criar configurações padrão
+            conn.execute('INSERT INTO user_settings (user_id) VALUES (?)', (user_id,))
+            
+            print(f'✅ Usuário criado: {customer_email} | Senha temporária: {temp_password}')
+            # IMPORTANTE: Envie esta senha por email ao cliente!
+        else:
+            user_id = user['id']
+        
+        # Criar assinatura
+        cursor = conn.execute(
+            '''INSERT INTO subscriptions (user_id, plan_name, plan_value, status, kirvano_subscription_id)
+               VALUES (?, 'Mensal', ?, 'active', ?)''',
+            (user_id, amount, kirvano_sub_id)
+        )
+        subscription_id = cursor.lastrowid
+        
+        # Registrar pagamento
+        conn.execute(
+            '''INSERT INTO payment_history 
+               (subscription_id, user_id, amount, status, kirvano_payment_id, paid_at)
+               VALUES (?, ?, ?, "paid", ?, ?)''',
+            (subscription_id, user_id, amount, payment_id, now_brasilia())
+        )
+        
+        # Ativar assinatura
+        new_end_date = now_brasilia() + timedelta(days=30)
+        conn.execute(
+            '''UPDATE subscriptions 
+               SET status = "active", start_date = ?, end_date = ?, next_billing_date = ?, updated_at = ?
+               WHERE id = ?''',
+            (now_brasilia(), new_end_date, new_end_date, now_brasilia(), subscription_id)
+        )
+        
+        conn.commit()
+        print(f'✅ Assinatura criada e ativada para {customer_email}')
+        return
+    
+    # Fluxo normal - assinatura já existe
     if subscription:
         # Registrar pagamento
         conn.execute(
