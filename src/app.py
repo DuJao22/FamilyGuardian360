@@ -179,6 +179,19 @@ def login():
                 conn.close()
                 return jsonify({'success': False, 'message': 'Email ou senha incorretos'}), 401
 
+            # Verificar se é primeiro acesso
+            if user.get('first_access') == 1:
+                session['temp_user_id'] = user['id']
+                session['temp_user_email'] = user['email']
+                cursor.close()
+                conn.close()
+                return jsonify({
+                    'success': True,
+                    'first_access': True,
+                    'message': 'Primeiro acesso detectado. Por favor, defina sua nova senha.',
+                    'redirect': url_for('first_access')
+                })
+
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['full_name'] = user['full_name']
@@ -287,6 +300,67 @@ def register():
             return jsonify({'success': False, 'message': 'Erro ao processar cadastro. Tente novamente.'}), 500
 
     return render_template('register.html')
+
+@app.route('/first-access', methods=['GET', 'POST'])
+def first_access():
+    """Página de primeiro acesso para definir nova senha"""
+    if 'temp_user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        try:
+            data = request.get_json()
+            new_password = data.get('new_password', '')
+            confirm_password = data.get('confirm_password', '')
+            
+            if not new_password or not confirm_password:
+                return jsonify({'success': False, 'message': 'Preencha todos os campos'}), 400
+            
+            if len(new_password) < 6:
+                return jsonify({'success': False, 'message': 'A senha deve ter no mínimo 6 caracteres'}), 400
+            
+            if new_password != confirm_password:
+                return jsonify({'success': False, 'message': 'As senhas não coincidem'}), 400
+            
+            user_id = session['temp_user_id']
+            
+            # Gerar hash da nova senha
+            password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            
+            # Atualizar senha e remover flag de primeiro acesso
+            conn = get_db_connection()
+            conn.execute(
+                'UPDATE users SET password_hash = ?, first_access = 0, updated_at = ? WHERE id = ?',
+                (password_hash, now_brasilia(), user_id)
+            )
+            
+            user = conn.execute(
+                'SELECT id, username, email, full_name, user_type FROM users WHERE id = ?',
+                (user_id,)
+            ).fetchone()
+            
+            conn.commit()
+            conn.close()
+            
+            # Fazer login automático
+            session.pop('temp_user_id', None)
+            session.pop('temp_user_email', None)
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['full_name'] = user['full_name']
+            session['user_type'] = user['user_type'] if user['user_type'] else 'member'
+            
+            return jsonify({
+                'success': True,
+                'message': 'Senha definida com sucesso! Bem-vindo ao Family Guardian 360°',
+                'redirect': url_for('dashboard')
+            })
+            
+        except Exception as e:
+            print(f"Erro ao definir nova senha: {e}")
+            return jsonify({'success': False, 'message': f'Erro ao definir senha: {str(e)}'}), 500
+    
+    return render_template('first_access.html', email=session.get('temp_user_email'))
 
 @app.route('/logout')
 def logout():
@@ -2560,17 +2634,17 @@ def handle_subscription_activated(conn, data):
         if not user:
             print(f'🆕 Criando novo usuário para {customer_email}')
             
-            # Gerar senha temporária
+            # Gerar senha temporária (será exigida troca no primeiro login)
             import secrets
-            temp_password = secrets.token_urlsafe(12)
+            temp_password = secrets.token_urlsafe(16)
             password_hash = bcrypt.hashpw(temp_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
             username = customer_email.split('@')[0]
             
-            # Criar usuário
+            # Criar usuário com flag de primeiro acesso
             cursor = conn.execute(
-                '''INSERT INTO users (username, email, password_hash, full_name, user_type)
-                   VALUES (?, ?, ?, ?, ?)''',
+                '''INSERT INTO users (username, email, password_hash, full_name, user_type, first_access)
+                   VALUES (?, ?, ?, ?, ?, 1)''',
                 (username, customer_email, password_hash, customer_name, 'member')
             )
             new_user_id = cursor.lastrowid
@@ -2586,7 +2660,7 @@ def handle_subscription_activated(conn, data):
             
             conn.commit()
             print(f'✅ Usuário criado: {customer_email} | Senha temporária: {temp_password}')
-            # IMPORTANTE: Envie esta senha por email ao cliente!
+            print(f'📧 Envie esta senha por email para o cliente fazer o primeiro acesso!')
     
     # Calcular datas
     start_date = now_brasilia()
@@ -2628,17 +2702,17 @@ def handle_payment_approved(conn, data):
         user = conn.execute('SELECT id FROM users WHERE email = ?', (customer_email,)).fetchone()
         
         if not user:
-            # Gerar senha temporária
+            # Gerar senha temporária (será exigida troca no primeiro login)
             import secrets
-            temp_password = secrets.token_urlsafe(12)
+            temp_password = secrets.token_urlsafe(16)
             password_hash = bcrypt.hashpw(temp_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             
             username = customer_email.split('@')[0]
             
-            # Criar usuário
+            # Criar usuário com flag de primeiro acesso
             cursor = conn.execute(
-                '''INSERT INTO users (username, email, password_hash, full_name, user_type)
-                   VALUES (?, ?, ?, ?, ?)''',
+                '''INSERT INTO users (username, email, password_hash, full_name, user_type, first_access)
+                   VALUES (?, ?, ?, ?, ?, 1)''',
                 (username, customer_email, password_hash, customer_name, 'member')
             )
             user_id = cursor.lastrowid
@@ -2647,7 +2721,7 @@ def handle_payment_approved(conn, data):
             conn.execute('INSERT INTO user_settings (user_id) VALUES (?)', (user_id,))
             
             print(f'✅ Usuário criado: {customer_email} | Senha temporária: {temp_password}')
-            # IMPORTANTE: Envie esta senha por email ao cliente!
+            print(f'📧 Envie esta senha por email para o cliente fazer o primeiro acesso!')
         else:
             user_id = user['id']
         

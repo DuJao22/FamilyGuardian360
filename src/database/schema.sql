@@ -4,22 +4,23 @@
 -- Tabela de usuários
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
+    username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    full_name TEXT NOT NULL,
-    cpf TEXT UNIQUE,
-    birth_date DATE,
+    full_name TEXT,
+    cpf TEXT,
+    birth_date TEXT,
     phone TEXT,
-    profile_image TEXT DEFAULT 'default-avatar.png',
+    profile_image TEXT,
     user_type TEXT DEFAULT 'member',
-    user_category TEXT DEFAULT NULL,
+    user_category TEXT,
+    first_access INTEGER DEFAULT 0,
+    is_active INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_active INTEGER DEFAULT 1,
+    last_seen TIMESTAMP,
     CHECK (user_type IN ('super_admin', 'family_admin', 'member')),
-    CHECK (user_category IS NULL OR user_category IN ('filho', 'idoso', 'outro'))
+    CHECK (user_category IN ('filho', 'idoso', 'outro', NULL))
 );
 
 -- Tabela de famílias

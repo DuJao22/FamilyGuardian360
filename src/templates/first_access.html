@@ -1,0 +1,108 @@
+
+{% extends "base.html" %}
+
+{% block title %}Primeiro Acesso - Family Guardian 360°{% endblock %}
+
+{% block body %}
+<div class="auth-container">
+    <div class="auth-box">
+        <div class="auth-logo">
+            <div class="logo-circle">
+                <i class="fas fa-key"></i>
+            </div>
+        </div>
+        <div class="auth-header">
+            <h1>Bem-vindo ao Family Guardian 360°</h1>
+            <p class="subtitle">Primeiro Acesso Detectado</p>
+            <p class="welcome-text">Por segurança, defina sua nova senha de acesso.</p>
+            {% if email %}
+            <p style="color: #10b981; margin-top: 10px;">
+                <i class="fas fa-envelope"></i> Login: <strong>{{ email }}</strong>
+            </p>
+            {% endif %}
+        </div>
+
+        <form id="firstAccessForm" class="auth-form">
+            <div class="form-group">
+                <label for="new_password"><i class="fas fa-lock"></i> Nova Senha</label>
+                <input type="password" id="new_password" name="new_password" required placeholder="Digite sua nova senha" minlength="6">
+                <small style="color: #6b7280; display: block; margin-top: 5px;">Mínimo de 6 caracteres</small>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password"><i class="fas fa-lock"></i> Confirmar Senha</label>
+                <input type="password" id="confirm_password" name="confirm_password" required placeholder="Digite novamente sua senha" minlength="6">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-check"></i> Definir Senha e Entrar
+            </button>
+
+            <div class="auth-footer">
+                <p><a href="{{ url_for('logout') }}">Sair e voltar ao login</a></p>
+            </div>
+        </form>
+
+        <div class="credits">
+            <p>Desenvolvido por <strong>João Layon</strong> - Desenvolvedor Full Stack</p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('firstAccessForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Definindo senha...';
+    
+    const newPassword = document.getElementById('new_password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (newPassword.length < 6) {
+        alert('❌ A senha deve ter no mínimo 6 caracteres');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        alert('❌ As senhas não coincidem. Digite novamente.');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+        return;
+    }
+    
+    const formData = {
+        new_password: newPassword,
+        confirm_password: confirmPassword
+    };
+    
+    try {
+        const response = await fetch('/first-access', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ ' + data.message);
+            window.location.href = data.redirect;
+        } else {
+            alert('❌ ' + data.message);
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+    } catch (error) {
+        console.error('Erro ao definir senha:', error);
+        alert('❌ Erro ao definir senha. Tente novamente.');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+    }
+});
+</script>
+{% endblock %}

@@ -1,4 +1,3 @@
-
 """
 Family Guardian 360° - Database Manager (SQLiteCloud Online + Ping)
 Desenvolvido por: João Layon - Desenvolvedor Full Stack
@@ -33,7 +32,7 @@ print("☁️ Modo: SQLiteCloud ONLINE com ping a cada 5 minutos")
 
 # Configuração do SQLite Cloud
 CLOUD_CONNECTION_STRING = os.environ.get(
-    'SQLITE_CLOUD_URL', 
+    'SQLITE_CLOUD_URL',
     'sqlitecloud://cmq6frwshz.g4.sqlite.cloud:8860/family_guardian.db?apikey=Dor8OwUECYmrbcS5vWfsdGpjCpdm9ecSDJtywgvRw8k'
 )
 
@@ -62,7 +61,7 @@ def dict_factory(cursor, row):
 def ping_database():
     """Executa ping no banco para manter conexão ativa"""
     global _last_ping_time
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -79,9 +78,9 @@ def ping_database():
 def _ping_loop():
     """Loop de ping em background - a cada 5 minutos"""
     global _ping_running, _last_ping_time
-    
+
     print("🏓 Sistema de ping iniciado (intervalo: 5 minutos)")
-    
+
     while _ping_running:
         try:
             success = ping_database()
@@ -91,21 +90,21 @@ def _ping_loop():
                     print(f"✅ Ping OK às {_last_ping_time.strftime('%H:%M:%S')}")
                 else:
                     print("✅ Primeiro ping OK")
-                
+
         except Exception as e:
             print(f"❌ Erro no loop de ping: {e}")
-        
+
         # Espera 5 minutos (300 segundos) antes do próximo ping
         time.sleep(300)
 
 def start_ping_service():
     """Inicia serviço de ping em background"""
     global _ping_thread, _ping_running
-    
+
     if _ping_running:
         print("⚠️ Serviço de ping já está rodando")
         return
-    
+
     _ping_running = True
     _ping_thread = threading.Thread(target=_ping_loop, daemon=True)
     _ping_thread.start()
@@ -114,17 +113,17 @@ def start_ping_service():
 def stop_ping_service():
     """Para serviço de ping"""
     global _ping_running
-    
+
     if not _ping_running:
         return
-    
+
     _ping_running = False
     print("🛑 Serviço de ping parado")
 
 def get_ping_status():
     """Retorna status do serviço de ping"""
     global _last_ping_time, _ping_running
-    
+
     return {
         'running': _ping_running,
         'last_ping': _last_ping_time.isoformat() if _last_ping_time else None,
@@ -134,20 +133,20 @@ def get_ping_status():
 def init_database():
     """Inicializa o banco de dados com o schema no Cloud"""
     print("🔧 Inicializando banco de dados no SQLiteCloud...")
-    
+
     schema_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'schema.sql')
     print(f"📄 Carregando schema de: {schema_path}")
-    
+
     with open(schema_path, 'r', encoding='utf-8') as f:
         schema = f.read()
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # Executar statements um por um
         statements = [s.strip() for s in schema.split(';') if s.strip()]
-        
+
         for statement in statements:
             try:
                 cursor.execute(statement)
@@ -156,7 +155,7 @@ def init_database():
                 # Ignora erros de tabela/índice já existente
                 if 'already exists' not in error_msg and 'duplicate' not in error_msg:
                     print(f"⚠️ Erro ao executar statement: {stmt_error}")
-        
+
         conn.commit()
         cursor.close()
         conn.close()
@@ -169,7 +168,7 @@ def cleanup_old_locations():
     try:
         conn = get_db_connection()
         cutoff_time = datetime.now(BRASILIA_TZ) - timedelta(hours=24)
-        
+
         cursor = conn.cursor()
         cursor.execute(
             "DELETE FROM locations WHERE timestamp < ?",
@@ -179,7 +178,7 @@ def cleanup_old_locations():
         conn.commit()
         cursor.close()
         conn.close()
-        
+
         return deleted
     except Exception as e:
         print(f"⚠️ Erro ao limpar localizações antigas: {e}")
@@ -234,6 +233,15 @@ def run_migrations_on_db(conn, db_name="Cloud"):
             print(f"✅ [{db_name}] Coluna updated_at adicionada")
         else:
             print(f"✅ [{db_name}] Coluna updated_at já existe")
+
+        # Migração 2: Adicionar first_access à tabela users
+        if 'first_access' not in columns:
+            print("⚙️ Executando migração: Adicionar first_access")
+            cursor.execute("ALTER TABLE users ADD COLUMN first_access INTEGER DEFAULT 0")
+            conn.commit()
+            print("✅ Migração first_access concluída")
+        else:
+            print("✅ Coluna first_access já existe")
 
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='supervisor_permissions'")
         table_exists = cursor.fetchone()
@@ -342,17 +350,17 @@ def create_super_admin():
             # Atualizar credenciais do Super Admin existente
             print("🔄 Atualizando credenciais do Super Admin...")
             password_hash = bcrypt.hashpw(admin_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            
+
             try:
                 cursor.execute(
-                    '''UPDATE users 
+                    '''UPDATE users
                        SET email = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP
                        WHERE username = 'superadmin' OR user_type = 'super_admin' ''',
                     (admin_email, password_hash)
                 )
             except:
                 cursor.execute(
-                    '''UPDATE users 
+                    '''UPDATE users
                        SET email = ?, password_hash = ?
                        WHERE username = 'superadmin' OR user_type = 'super_admin' ''',
                     (admin_email, password_hash)
@@ -360,7 +368,7 @@ def create_super_admin():
             conn.commit()
             print("✅ Credenciais do Super Admin atualizadas!")
             print(f"   Email: {admin_email}")
-        
+
         cursor.close()
         conn.close()
     except Exception as e:
