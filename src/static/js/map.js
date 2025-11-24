@@ -80,6 +80,12 @@ async function getAddressFromCoords(lat, lon) {
     }
 }
 
+// Variáveis para seleção de zona
+let isSelectingZone = false;
+let tempZoneCircle = null;
+let tempZoneMarker = null;
+let selectedZoneLocation = null;
+
 function initMainMap() {
     mainMap = L.map('mainMap', {
         zoomControl: !isMobile
@@ -97,10 +103,80 @@ function initMainMap() {
         maxZoom: 19
     }).addTo(mainMap);
 
+    // Adicionar evento de clique no mapa para selecionar zona
+    mainMap.on('click', function(e) {
+        if (isSelectingZone) {
+            selectZoneLocation(e.latlng);
+        }
+    });
+
     // Ajustar mapa ao redimensionar
     setTimeout(() => mainMap.invalidateSize(), 100);
 
     refreshLocations();
+    
+    // Verificar se está no modo de seleção
+    if (localStorage.getItem('selectingZone') === 'true') {
+        activateZoneSelection();
+    }
+}
+
+function activateZoneSelection() {
+    isSelectingZone = true;
+    localStorage.removeItem('selectingZone');
+    
+    // Alterar cursor do mapa
+    document.getElementById('mainMap').style.cursor = 'crosshair';
+    
+    // Mostrar mensagem
+    alert('📍 Clique no mapa para selecionar o centro da zona segura');
+}
+
+function selectZoneLocation(latlng) {
+    selectedZoneLocation = latlng;
+    
+    // Remover círculo/marcador temporário anterior
+    if (tempZoneCircle) {
+        mainMap.removeLayer(tempZoneCircle);
+    }
+    if (tempZoneMarker) {
+        mainMap.removeLayer(tempZoneMarker);
+    }
+    
+    // Adicionar marcador temporário
+    tempZoneMarker = L.marker([latlng.lat, latlng.lng], {
+        icon: L.divIcon({
+            html: '<i class="fas fa-map-marker-alt" style="font-size: 32px; color: #10b981;"></i>',
+            className: 'custom-marker',
+            iconSize: [40, 40],
+            iconAnchor: [20, 40]
+        })
+    }).addTo(mainMap);
+    
+    // Adicionar círculo temporário (200m de raio padrão)
+    tempZoneCircle = L.circle([latlng.lat, latlng.lng], {
+        radius: 200,
+        color: '#10b981',
+        fillColor: '#10b981',
+        fillOpacity: 0.2
+    }).addTo(mainMap);
+    
+    // Desativar modo de seleção
+    isSelectingZone = false;
+    document.getElementById('mainMap').style.cursor = '';
+    
+    // Mostrar modal com os dados preenchidos
+    showAddZoneModalWithLocation(latlng.lat, latlng.lng);
+}
+
+function showAddZoneModalWithLocation(lat, lon) {
+    const modal = document.getElementById('addZoneModal');
+    if (modal) {
+        document.getElementById('zoneLatitude').value = lat.toFixed(6);
+        document.getElementById('zoneLongitude').value = lon.toFixed(6);
+        document.getElementById('zoneRadius').value = '200';
+        modal.style.display = 'block';
+    }
 }
 
 // Toggle seletor de usuários

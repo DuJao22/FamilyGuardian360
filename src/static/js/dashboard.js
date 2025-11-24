@@ -246,31 +246,31 @@ async function viewFamilyMembers(familyId, familyName) {
 async function refreshMemberLocations(familyId, locationMap) {
     try {
         const response = await fetch(`/api/families/${familyId}/members`);
-        
+
         // Validar response antes de processar
         if (!response.ok) {
             console.log('⚠️ Erro ao buscar membros da família');
             return;
         }
-        
+
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             console.log('⚠️ Resposta não é JSON, ignorando');
             return;
         }
-        
+
         const data = await response.json();
 
         if (data.members && data.members.length > 0) {
             for (const member of data.members) {
                 try {
                     const locResponse = await fetch(`/api/location/user/${member.id}`);
-                    
+
                     if (!locResponse.ok) continue;
-                    
+
                     const locContentType = locResponse.headers.get('content-type');
                     if (!locContentType || !locContentType.includes('application/json')) continue;
-                    
+
                     const locData = await locResponse.json();
 
                     if (locData.location) {
@@ -976,7 +976,7 @@ function toggleSupervisorPermissions() {
     toggleUserTypeOptions();
 }
 
-async function loadMembersForPermissions() {
+async function loadFamilyMembersForPermissions() {
     if (!currentFamilyId) return;
 
     try {
@@ -1153,19 +1153,19 @@ async function updateFamilyLocations() {
 
     try {
         const response = await fetch('/api/families/locations');
-        
+
         // Validar response antes de processar
         if (!response.ok) {
             console.log('⚠️ Endpoint de localizações da família não disponível');
             return;
         }
-        
+
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             console.log('⚠️ Resposta não é JSON, ignorando');
             return;
         }
-        
+
         const data = await response.json();
 
         if (data.locations) {
@@ -1327,3 +1327,25 @@ async function updateBatteryStatus() {
         console.log('Battery API não suportada');
     }
 }
+
+// Variável para armazenar círculo temporário no mapa
+let tempZoneCircle = null;
+let tempZoneMarker = null;
+let isSelectingZoneOnMap = false;
+
+// Função para ativar seleção de zona no mapa
+function selectZoneOnMap() {
+    // Redirecionar para página do mapa com modo de seleção ativo
+    localStorage.setItem('selectingZone', 'true');
+    window.location.href = '/map';
+}
+
+// Recarregar após adicionar/remover zona
+const originalAddSafeZone = window.addSafeZone;
+window.addSafeZone = async function(...args) {
+    const result = await originalAddSafeZone.apply(this, args);
+    if (result) {
+        loadDashboardSafeZones();
+    }
+    return result;
+};
