@@ -121,13 +121,43 @@ async function loadSubscriptionStatus() {
             // Sem assinatura
             statusDiv.innerHTML = `
                 <div style="text-align: center;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ef4444; margin-bottom: 20px;"></i>
-                    <h3>Você não possui uma assinatura ativa</h3>
-                    <p>Assine agora por apenas R$ 29,90/mês e tenha acesso a todos os recursos!</p>
-                    <button class="btn btn-primary" onclick="createSubscription()" style="margin-top: 20px;">
-                        <i class="fas fa-shopping-cart"></i> Assinar Agora
-                    </button>
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3); margin-bottom: 20px;">
+                        <i class="fas fa-crown" style="font-size: 64px; color: #fbbf24; margin-bottom: 20px; animation: pulse 2s infinite;"></i>
+                        <h2 style="color: white; font-size: 32px; margin: 0 0 15px 0; font-weight: 800;">Assine Agora!</h2>
+                        <p style="color: rgba(255,255,255,0.95); font-size: 18px; margin-bottom: 10px;">Tenha acesso completo ao Family Guardian 360°</p>
+                        <div style="background: rgba(255,255,255,0.2); padding: 20px; border-radius: 12px; margin: 20px 0; backdrop-filter: blur(10px);">
+                            <span style="color: white; font-size: 48px; font-weight: 900;">R$ 29,90</span>
+                            <span style="color: rgba(255,255,255,0.9); font-size: 20px; display: block; margin-top: 5px;">/mês</span>
+                        </div>
+                        <a href="https://pay.kirvano.com/a7c0bdde-0042-4849-985e-8eadf5d06ffb" target="_blank" 
+                           style="display: inline-block; background: #fbbf24; color: #1f2937; padding: 18px 50px; border-radius: 50px; text-decoration: none; font-size: 20px; font-weight: 700; box-shadow: 0 8px 20px rgba(251, 191, 36, 0.4); transition: all 0.3s ease; margin-top: 10px;"
+                           onmouseover="this.style.transform='translateY(-3px) scale(1.05)'; this.style.boxShadow='0 12px 30px rgba(251, 191, 36, 0.5)';"
+                           onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 20px rgba(251, 191, 36, 0.4)';">
+                            <i class="fas fa-rocket"></i> Assinar Agora - Checkout Seguro
+                        </a>
+                        <p style="color: rgba(255,255,255,0.8); font-size: 14px; margin-top: 20px;">
+                            <i class="fas fa-shield-alt"></i> Pagamento 100% seguro via Kirvano
+                        </p>
+                    </div>
+                    
+                    <div style="background: #f9fafb; padding: 20px; border-radius: 12px; border: 2px dashed #e5e7eb;">
+                        <i class="fas fa-info-circle" style="font-size: 24px; color: #3b82f6; margin-bottom: 10px;"></i>
+                        <h4 style="margin: 10px 0; color: #1f2937;">Como funciona?</h4>
+                        <ol style="text-align: left; max-width: 500px; margin: 15px auto; color: #4b5563; line-height: 1.8;">
+                            <li>Clique no botão acima para acessar o checkout seguro</li>
+                            <li>Preencha seus dados e realize o pagamento</li>
+                            <li>Após a confirmação, você receberá um email com suas credenciais de acesso</li>
+                            <li>Faça login e aproveite todos os recursos!</li>
+                        </ol>
+                    </div>
                 </div>
+                
+                <style>
+                    @keyframes pulse {
+                        0%, 100% { transform: scale(1); }
+                        50% { transform: scale(1.1); }
+                    }
+                </style>
             `;
         } else {
             const sub = data.subscription;
