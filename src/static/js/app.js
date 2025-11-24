@@ -129,7 +129,8 @@ document.addEventListener('DOMContentLoaded', function() {
 function getBatteryStatus() {
     if ('getBattery' in navigator) {
         navigator.getBattery().then(function(battery) {
-            const batteryLevel = Math.round(battery.level * 100);
+            // Validar valores
+            const batteryLevel = Math.min(100, Math.max(0, Math.round(battery.level * 100)));
             const isCharging = battery.charging;
 
             const batteryElement = document.getElementById('batteryLevel');
@@ -226,9 +227,18 @@ async function startLocationTracking() {
 async function updateLocation(position) {
     window.currentPosition = position;
 
+    // Validar coordenadas
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+    
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        console.error('❌ Coordenadas inválidas:', lat, lon);
+        return;
+    }
+
     const locationData = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
+        latitude: lat,
+        longitude: lon,
         accuracy: position.coords.accuracy,
         altitude: position.coords.altitude,
         speed: position.coords.speed,

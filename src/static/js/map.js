@@ -177,6 +177,11 @@ async function refreshLocations() {
 
         if (!response.ok) {
             console.error('❌ Erro ao buscar localizações:', response.status);
+            // Mostrar mensagem de erro para o usuário
+            const membersList = document.getElementById('membersList');
+            if (membersList && response.status === 401) {
+                membersList.innerHTML = '<p class="text-danger">Sessão expirada. Por favor, faça login novamente.</p>';
+            }
             return;
         }
 

@@ -16,7 +16,10 @@ function initWebSocket() {
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        reconnectionAttempts: MAX_RECONNECT_ATTEMPTS
+        reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+        timeout: 10000, // 10 segundos de timeout
+        pingTimeout: 20000,
+        pingInterval: 25000
     });
 
     // Conexão estabelecida

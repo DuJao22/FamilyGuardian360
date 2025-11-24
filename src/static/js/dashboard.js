@@ -641,11 +641,7 @@ function updateLastUpdateTime() {
     }
 }
 
-// FUNCIONALIDADE DE CÂMERA DESABILITADA
-// async function loadAvailableCameras() { ... }
-// async function viewUserCameras(userId, userName) { ... }
-// function createViewCamerasModal() { ... }
-// async function refreshCameraList() { ... }
+// Funcionalidades de câmera foram removidas do sistema
 
 document.addEventListener('DOMContentLoaded', function() {
     loadUserProfile();

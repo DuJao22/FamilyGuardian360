@@ -24,6 +24,7 @@ BRASILIA_TZ = ZoneInfo('America/Sao_Paulo')
 def now_brasilia():
     """Retorna datetime atual no horário de Brasília"""
     return datetime.now(BRASILIA_TZ)
+
 from database.db import get_db_connection, init_database, cleanup_old_locations, run_migrations, create_super_admin, start_ping_service, get_ping_status
 from ai_engine import ai_engine
 from encryption import encryption_engine
@@ -1913,9 +1914,15 @@ def handle_disconnect():
 @socketio.on('update_location')
 def handle_location_update(data):
     if 'user_id' not in session:
+        emit('error', {'message': 'Não autenticado'})
         return
 
     user_id = session['user_id']
+    
+    # Validar dados recebidos
+    if not data.get('latitude') or not data.get('longitude'):
+        emit('error', {'message': 'Dados de localização inválidos'})
+        return
 
     conn = get_db_connection()
     conn.execute(

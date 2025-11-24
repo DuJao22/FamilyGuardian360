@@ -336,14 +336,26 @@ async function handleICECandidate(data) {
 }
 
 function stopLiveCamera() {
+    // Limpar stream local
     if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+        localStream.getTracks().forEach(track => {
+            track.stop();
+            console.log('🛑 Track parado:', track.kind);
+        });
         localStream = null;
     }
     
+    // Limpar peer connection
     if (peerConnection) {
+        // Remover event listeners
+        peerConnection.ontrack = null;
+        peerConnection.onicecandidate = null;
+        peerConnection.onconnectionstatechange = null;
+        peerConnection.oniceconnectionstatechange = null;
+        
         peerConnection.close();
         peerConnection = null;
+        console.log('🔌 PeerConnection fechado');
     }
     
     if (isTransmitting) {
@@ -351,7 +363,12 @@ function stopLiveCamera() {
         hideTransmittingIndicator();
     }
     
-    window.socket.emit('stop_camera');
+    // Emitir evento de parada
+    if (window.socket && window.socket.connected) {
+        window.socket.emit('stop_camera');
+    }
+    
+    console.log('✅ Câmera ao vivo parada completamente');
 }
 
 function showTransmittingIndicator() {
