@@ -33,6 +33,11 @@ from encryption import encryption_engine
 from relationship_profiles import relationship_profiles
 from history_manager import history_manager
 from widget_system import widget_system
+from utils.cache import cache_manager, cached
+from utils.logger import app_logger, db_logger, webhook_logger, log_request, log_error
+from utils.pagination import Paginator, paginate_query_params, paginated_response
+from ml.predictor import location_predictor
+from utils.pdf_reports import pdf_generator
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 app.secret_key = os.environ.get('SESSION_SECRET', secrets.token_hex(32))
@@ -145,8 +150,7 @@ def login():
             if not _db_initialized:
                 with _init_lock:
                     if not _db_initialized:
-                        if not os.path.exists(DATABASE_PATH):
-                            init_database()
+                        init_database()
                         run_migrations()
                         create_super_admin()
                         _db_initialized = True
@@ -2992,5 +2996,526 @@ def list_all_subscriptions():
 #         'users': [dict(user) for user in users]
 #     })
 
+# ==================== NOVAS ROTAS - MELHORIAS ====================
+
+# ===== PAGINAÇÃO =====
+
+@app.route('/api/locations/paginated', methods=['GET'])
+@login_required
+def get_locations_paginated():
+    """Retorna localizações com paginação (SQL nível)"""
+    user_id = session['user_id']
+    page, per_page = paginate_query_params()
+    
+    offset = (page - 1) * per_page
+    
+    conn = get_db_connection()
+    
+    total_count = conn.execute(
+        'SELECT COUNT(*) as count FROM locations WHERE user_id = ?',
+        (user_id,)
+    ).fetchone()['count']
+    
+    locations = conn.execute(
+        '''SELECT * FROM locations 
+           WHERE user_id = ? 
+           ORDER BY timestamp DESC 
+           LIMIT ? OFFSET ?''',
+        (user_id, per_page, offset)
+    ).fetchall()
+    conn.close()
+    
+    locations_list = [dict(loc) for loc in locations]
+    
+    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 0
+    
+    return jsonify({
+        'success': True,
+        'items': locations_list,
+        'page': page,
+        'per_page': per_page,
+        'total_items': total_count,
+        'total_pages': total_pages,
+        'has_prev': page > 1,
+        'has_next': page < total_pages,
+        'prev_page': page - 1 if page > 1 else None,
+        'next_page': page + 1 if page < total_pages else None
+    })
+
+@app.route('/api/messages/paginated', methods=['GET'])
+@login_required
+def get_messages_paginated():
+    """Retorna mensagens com paginação (SQL nível)"""
+    user_id = session['user_id']
+    page, per_page = paginate_query_params()
+    
+    offset = (page - 1) * per_page
+    
+    conn = get_db_connection()
+    family_id = conn.execute(
+        'SELECT family_id FROM family_members WHERE user_id = ? LIMIT 1',
+        (user_id,)
+    ).fetchone()
+    
+    if not family_id:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Você não está em nenhuma família'}), 404
+    
+    total_count = conn.execute(
+        'SELECT COUNT(*) as count FROM messages WHERE family_id = ?',
+        (family_id['family_id'],)
+    ).fetchone()['count']
+    
+    messages = conn.execute(
+        '''SELECT m.*, u.full_name as sender_name 
+           FROM messages m
+           INNER JOIN users u ON m.sender_id = u.id
+           WHERE m.family_id = ?
+           ORDER BY m.timestamp DESC
+           LIMIT ? OFFSET ?''',
+        (family_id['family_id'], per_page, offset)
+    ).fetchall()
+    conn.close()
+    
+    messages_list = [dict(msg) for msg in messages]
+    
+    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 0
+    
+    return jsonify({
+        'success': True,
+        'items': messages_list,
+        'page': page,
+        'per_page': per_page,
+        'total_items': total_count,
+        'total_pages': total_pages,
+        'has_prev': page > 1,
+        'has_next': page < total_pages,
+        'prev_page': page - 1 if page > 1 else None,
+        'next_page': page + 1 if page < total_pages else None
+    })
+
+@app.route('/api/alerts/paginated', methods=['GET'])
+@login_required
+def get_alerts_paginated():
+    """Retorna alertas com paginação (SQL nível)"""
+    user_id = session['user_id']
+    page, per_page = paginate_query_params()
+    
+    offset = (page - 1) * per_page
+    
+    conn = get_db_connection()
+    
+    total_count = conn.execute(
+        'SELECT COUNT(*) as count FROM alerts WHERE user_id = ?',
+        (user_id,)
+    ).fetchone()['count']
+    
+    alerts = conn.execute(
+        '''SELECT * FROM alerts 
+           WHERE user_id = ? 
+           ORDER BY created_at DESC
+           LIMIT ? OFFSET ?''',
+        (user_id, per_page, offset)
+    ).fetchall()
+    conn.close()
+    
+    alerts_list = [dict(alert) for alert in alerts]
+    
+    total_pages = (total_count + per_page - 1) // per_page if total_count > 0 else 0
+    
+    return jsonify({
+        'success': True,
+        'items': alerts_list,
+        'page': page,
+        'per_page': per_page,
+        'total_items': total_count,
+        'total_pages': total_pages,
+        'has_prev': page > 1,
+        'has_next': page < total_pages,
+        'prev_page': page - 1 if page > 1 else None,
+        'next_page': page + 1 if page < total_pages else None
+    })
+
+# ===== MACHINE LEARNING =====
+
+@app.route('/api/ml/predictions', methods=['GET'])
+@login_required
+def get_ml_predictions():
+    """Retorna previsões de IA sobre o usuário"""
+    user_id = session['user_id']
+    app_logger.info(f'ML Predictions solicitadas para user {user_id}')
+    
+    try:
+        conn = get_db_connection()
+        locations = conn.execute(
+            '''SELECT latitude, longitude, timestamp, battery_level 
+               FROM locations 
+               WHERE user_id = ? 
+               AND latitude IS NOT NULL 
+               AND longitude IS NOT NULL
+               ORDER BY timestamp DESC 
+               LIMIT 100''',
+            (user_id,)
+        ).fetchall()
+        conn.close()
+        
+        if not locations or len(locations) < 5:
+            return jsonify({
+                'success': False,
+                'message': 'Dados insuficientes para previsões (mínimo 5 localizações)'
+            }), 400
+        
+        locations_list = [dict(loc) for loc in locations]
+        
+        next_location = location_predictor.predict_next_location(locations_list, user_id)
+        frequent_places = location_predictor.detect_frequent_places(locations_list, user_id)
+        pattern = location_predictor.predict_pattern(locations_list, user_id)
+        speed_analysis = location_predictor.analyze_movement_speed(locations_list)
+        
+        return jsonify({
+            'success': True,
+            'predictions': {
+                'next_location': next_location,
+                'frequent_places': frequent_places[:5],
+                'activity_pattern': pattern,
+                'movement_speed': speed_analysis
+            }
+        })
+    except Exception as e:
+        app_logger.error(f'Erro em ML predictions: {e}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao gerar previsões'
+        }), 500
+
+@app.route('/api/ml/frequent-places/<int:target_user_id>', methods=['GET'])
+@login_required
+def get_frequent_places(target_user_id):
+    """Retorna locais frequentes de um usuário"""
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    locations = conn.execute(
+        '''SELECT * FROM locations 
+           WHERE user_id = ? 
+           ORDER BY timestamp DESC 
+           LIMIT 500''',
+        (target_user_id,)
+    ).fetchall()
+    conn.close()
+    
+    if not locations:
+        return jsonify({'success': False, 'message': 'Dados insuficientes'})
+    
+    locations_list = [dict(loc) for loc in locations]
+    frequent_places = location_predictor.detect_frequent_places(locations_list, target_user_id)
+    
+    return jsonify({
+        'success': True,
+        'frequent_places': frequent_places
+    })
+
+# ===== RELATÓRIOS PDF =====
+
+@app.route('/api/reports/location', methods=['POST'])
+@login_required
+def generate_location_report():
+    """Gera relatório PDF de localizações com controle de acesso"""
+    user_id = session['user_id']
+    user_type = session.get('user_type', 'member')
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({'success': False, 'message': 'Dados inválidos'}), 400
+    
+    start_date = data.get('start_date', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    end_date = data.get('end_date', datetime.now().strftime('%Y-%m-%d'))
+    target_user_id = data.get('target_user_id', user_id)
+    
+    conn = get_db_connection()
+    
+    if target_user_id != user_id and user_type not in ['super_admin', 'family_admin']:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Sem permissão para gerar relatório de outro usuário'}), 403
+    
+    if user_type == 'family_admin':
+        is_same_family = conn.execute(
+            '''SELECT 1 FROM family_members fm1
+               INNER JOIN family_members fm2 ON fm1.family_id = fm2.family_id
+               WHERE fm1.user_id = ? AND fm2.user_id = ? AND fm1.role = 'admin'
+               LIMIT 1''',
+            (user_id, target_user_id)
+        ).fetchone()
+        
+        if not is_same_family:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Sem permissão para gerar relatório deste usuário'}), 403
+    
+    app_logger.info(f'Gerando relatório de localização para user {target_user_id} solicitado por {user_id}')
+    
+    user_data = conn.execute('SELECT * FROM users WHERE id = ?', (target_user_id,)).fetchone()
+    if not user_data:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
+    
+    locations = conn.execute(
+        '''SELECT * FROM locations 
+           WHERE user_id = ? AND timestamp BETWEEN ? AND ?
+           ORDER BY timestamp DESC''',
+        (target_user_id, start_date, end_date)
+    ).fetchall()
+    conn.close()
+    
+    user_dict = dict(user_data)
+    locations_list = [dict(loc) for loc in locations]
+    
+    try:
+        filepath = pdf_generator.generate_location_report(
+            user_dict, locations_list, start_date, end_date
+        )
+        
+        response = send_file(
+            filepath,
+            as_attachment=True,
+            download_name=f'relatorio_localizacao_{target_user_id}.pdf',
+            mimetype='application/pdf'
+        )
+        
+        @response.call_on_close
+        def cleanup():
+            try:
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                    app_logger.info(f'Relatório temporário removido: {filepath}')
+            except Exception as e:
+                app_logger.error(f'Erro ao remover relatório temporário: {e}')
+        
+        return response
+    except Exception as e:
+        app_logger.error(f'Erro ao gerar relatório PDF: {e}', exc_info=True)
+        return jsonify({'success': False, 'message': 'Erro ao gerar relatório'}), 500
+
+@app.route('/api/reports/activity', methods=['POST'])
+@login_required
+def generate_activity_report():
+    """Gera relatório PDF de atividades"""
+    user_id = session['user_id']
+    data = request.get_json()
+    
+    period = data.get('period', 'monthly')
+    target_user_id = data.get('target_user_id', user_id)
+    
+    app_logger.info(f'Gerando relatório de atividade para user {target_user_id}')
+    
+    conn = get_db_connection()
+    
+    user_data = conn.execute('SELECT * FROM users WHERE id = ?', (target_user_id,)).fetchone()
+    if not user_data:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Usuário não encontrado'}), 404
+    
+    stats = {
+        'total_locations': conn.execute('SELECT COUNT(*) as count FROM locations WHERE user_id = ?', (target_user_id,)).fetchone()['count'],
+        'total_alerts': conn.execute('SELECT COUNT(*) as count FROM alerts WHERE user_id = ?', (target_user_id,)).fetchone()['count'],
+        'total_messages': conn.execute('SELECT COUNT(*) as count FROM messages WHERE sender_id = ?', (target_user_id,)).fetchone()['count'],
+        'avg_battery': conn.execute('SELECT AVG(battery_level) as avg FROM locations WHERE user_id = ?', (target_user_id,)).fetchone()['avg'] or 0,
+        'safe_zones': conn.execute('SELECT COUNT(*) as count FROM safe_zones WHERE user_id = ?', (target_user_id,)).fetchone()['count']
+    }
+    conn.close()
+    
+    user_dict = dict(user_data)
+    
+    try:
+        filepath = pdf_generator.generate_activity_report(user_dict, stats, period)
+        
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=f'relatorio_atividade_{target_user_id}.pdf',
+            mimetype='application/pdf'
+        )
+    except Exception as e:
+        app_logger.error(f'Erro ao gerar relatório PDF: {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/reports/family', methods=['POST'])
+@login_required
+def generate_family_report():
+    """Gera relatório PDF da família"""
+    user_id = session['user_id']
+    data = request.get_json()
+    
+    family_id = data.get('family_id')
+    period = data.get('period', 'monthly')
+    
+    app_logger.info(f'Gerando relatório familiar para family {family_id}')
+    
+    conn = get_db_connection()
+    
+    family_data = conn.execute('SELECT * FROM families WHERE id = ?', (family_id,)).fetchone()
+    if not family_data:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Família não encontrada'}), 404
+    
+    members = conn.execute(
+        '''SELECT u.* FROM users u
+           INNER JOIN family_members fm ON u.id = fm.user_id
+           WHERE fm.family_id = ?''',
+        (family_id,)
+    ).fetchall()
+    conn.close()
+    
+    family_dict = dict(family_data)
+    members_list = [dict(m) for m in members]
+    
+    try:
+        filepath = pdf_generator.generate_family_report(family_dict, members_list, period)
+        
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=f'relatorio_familia_{family_id}.pdf',
+            mimetype='application/pdf'
+        )
+    except Exception as e:
+        app_logger.error(f'Erro ao gerar relatório PDF: {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ===== DASHBOARD CUSTOMIZÁVEL =====
+
+@app.route('/api/dashboard/layout', methods=['GET'])
+@login_required
+def get_dashboard_layout():
+    """Retorna layout do dashboard do usuário"""
+    user_id = session['user_id']
+    
+    conn = get_db_connection()
+    widgets = conn.execute(
+        'SELECT * FROM user_widgets WHERE user_id = ? ORDER BY position',
+        (user_id,)
+    ).fetchall()
+    conn.close()
+    
+    if not widgets:
+        default_widgets = [
+            {'id': 'battery', 'position': 0},
+            {'id': 'locations', 'position': 1},
+            {'id': 'map', 'position': 2},
+            {'id': 'alerts', 'position': 3}
+        ]
+        return jsonify({'success': True, 'widgets': default_widgets})
+    
+    return jsonify({
+        'success': True,
+        'widgets': [dict(w) for w in widgets]
+    })
+
+@app.route('/api/dashboard/layout', methods=['POST'])
+@login_required
+def save_dashboard_layout():
+    """Salva layout do dashboard do usuário"""
+    user_id = session['user_id']
+    data = request.get_json()
+    widgets = data.get('widgets', [])
+    
+    conn = get_db_connection()
+    
+    conn.execute('DELETE FROM user_widgets WHERE user_id = ?', (user_id,))
+    
+    for widget in widgets:
+        conn.execute(
+            '''INSERT INTO user_widgets (user_id, widget_id, position)
+               VALUES (?, ?, ?)''',
+            (user_id, widget['id'], widget['position'])
+        )
+    
+    conn.commit()
+    conn.close()
+    
+    cache_manager.invalidate_user_cache(user_id)
+    app_logger.info(f'Widgets salvos para user {user_id}')
+    
+    return jsonify({'success': True, 'message': 'Layout salvo com sucesso'})
+
+# ===== CACHE & STATS =====
+
+@app.route('/api/cache/stats', methods=['GET'])
+@super_admin_required
+def get_cache_stats():
+    """Retorna estatísticas do cache (apenas Super Admin)"""
+    if not cache_manager.enabled:
+        return jsonify({
+            'success': True,
+            'enabled': False,
+            'message': 'Cache não habilitado'
+        })
+    
+    try:
+        info = cache_manager.redis_client.info()
+        return jsonify({
+            'success': True,
+            'enabled': True,
+            'stats': {
+                'used_memory': info.get('used_memory_human'),
+                'connected_clients': info.get('connected_clients'),
+                'total_commands': info.get('total_commands_processed'),
+                'keyspace_hits': info.get('keyspace_hits'),
+                'keyspace_misses': info.get('keyspace_misses')
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/cache/clear', methods=['POST'])
+@super_admin_required
+def clear_cache():
+    """Limpa todo o cache (apenas Super Admin)"""
+    if not cache_manager.enabled:
+        return jsonify({'success': False, 'message': 'Cache não habilitado'})
+    
+    try:
+        cache_manager.redis_client.flushdb()
+        app_logger.warning('Cache completamente limpo por admin')
+        return jsonify({'success': True, 'message': 'Cache limpo com sucesso'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# ===== ROTAS COM CACHE =====
+
+@app.route('/api/stats/activity', methods=['GET'])
+@login_required
+def get_activity_stats():
+    """Retorna estatísticas de atividade com cache"""
+    user_id = session['user_id']
+    
+    cache_key = f'stats:activity:user:{user_id}'
+    cached_data = cache_manager.get(cache_key)
+    
+    if cached_data:
+        app_logger.info(f'Estatísticas retornadas do cache para user {user_id}')
+        return jsonify({'success': True, 'stats': cached_data, 'from_cache': True})
+    
+    conn = get_db_connection()
+    
+    stats = {
+        'total_users': conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count'],
+        'active_today': conn.execute(
+            '''SELECT COUNT(DISTINCT user_id) as count FROM locations 
+               WHERE DATE(timestamp) = DATE(?)''',
+            (now_brasilia().isoformat(),)
+        ).fetchone()['count'],
+        'total_locations': conn.execute('SELECT COUNT(*) as count FROM locations').fetchone()['count'],
+        'total_alerts': conn.execute('SELECT COUNT(*) as count FROM alerts').fetchone()['count'],
+        'total_messages': conn.execute('SELECT COUNT(*) as count FROM messages').fetchone()['count']
+    }
+    
+    conn.close()
+    
+    cache_manager.set(cache_key, stats, ttl=300)
+    app_logger.info(f'Estatísticas calculadas e cacheadas para user {user_id}')
+    
+    return jsonify({'success': True, 'stats': stats, 'from_cache': False})
+
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True, use_reloader=False, log_output=True)
+    app_logger.info('🚀 Iniciando Family Guardian 360°...')
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False, use_reloader=False, log_output=True)
