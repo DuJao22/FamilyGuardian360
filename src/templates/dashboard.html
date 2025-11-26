@@ -44,6 +44,21 @@
     </nav>
 
     <main class="main-content">
+        <div id="trialBanner" class="trial-banner" style="display: none; background: linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%); padding: 12px 20px; border-radius: 8px; margin: 10px 20px 0 20px; box-shadow: 0 4px 15px rgba(43, 108, 176, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <i class="fas fa-clock" style="font-size: 24px; color: #bee3f8;"></i>
+                    <div>
+                        <p style="color: #bee3f8; margin: 0; font-size: 12px; text-transform: uppercase;">Tempo Restante do Teste</p>
+                        <p id="trialTimer" style="color: white; margin: 0; font-weight: bold; font-size: 20px;">15:00</p>
+                    </div>
+                </div>
+                <a href="https://pay.kirvano.com/a7c0bdde-0042-4849-985e-8eadf5d06ffb" target="_blank" class="trial-cta-btn" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(72, 187, 120, 0.4); transition: all 0.3s ease;">
+                    <i class="fas fa-rocket"></i> Assinar Agora
+                </a>
+            </div>
+        </div>
+
         <div class="topbar">
             <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
                 <i class="fas fa-bars"></i>
@@ -391,6 +406,77 @@ window.removeSafeZone = async function(zoneId) {
 // Carregar ao iniciar
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboardSafeZones();
+    initTrialTimer();
 });
+
+// Sistema de Trial Timer
+let trialInterval = null;
+
+async function initTrialTimer() {
+    try {
+        const response = await fetch('/api/trial/status');
+        const data = await response.json();
+        
+        if (data.success && data.is_trial) {
+            const banner = document.getElementById('trialBanner');
+            const timer = document.getElementById('trialTimer');
+            
+            if (banner && data.remaining_seconds !== undefined) {
+                banner.style.display = 'block';
+                let remainingSeconds = data.remaining_seconds;
+                
+                function updateTimer() {
+                    if (remainingSeconds <= 0) {
+                        clearInterval(trialInterval);
+                        window.location.href = '/trial-expired';
+                        return;
+                    }
+                    
+                    const minutes = Math.floor(remainingSeconds / 60);
+                    const seconds = remainingSeconds % 60;
+                    timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    
+                    if (remainingSeconds <= 60) {
+                        banner.style.background = 'linear-gradient(135deg, #c53030 0%, #e53e3e 100%)';
+                        banner.style.animation = 'pulse 1s infinite';
+                    } else if (remainingSeconds <= 180) {
+                        banner.style.background = 'linear-gradient(135deg, #dd6b20 0%, #ed8936 100%)';
+                    }
+                    
+                    remainingSeconds--;
+                }
+                
+                updateTimer();
+                trialInterval = setInterval(updateTimer, 1000);
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao verificar trial:', error);
+    }
+}
 </script>
+
+<style>
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.trial-cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(72, 187, 120, 0.5);
+}
+
+@media (max-width: 600px) {
+    #trialBanner {
+        margin: 10px !important;
+    }
+    
+    #trialBanner > div {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
 {% endblock %}

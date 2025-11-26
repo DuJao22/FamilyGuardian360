@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Período de Teste Expirado - Family Guardian 360°{% endblock %}
+
+{% block body %}
+<div class="auth-container">
+    <div class="auth-box">
+        <div class="auth-logo">
+            <div class="logo-circle" style="background: linear-gradient(135deg, #f56565 0%, #c53030 100%);">
+                <i class="fas fa-hourglass-end"></i>
+            </div>
+        </div>
+        <div class="auth-header">
+            <h1>Período de Teste Expirado</h1>
+            <p class="subtitle">Seus 15 minutos de teste gratuito terminaram</p>
+        </div>
+
+        <div class="info-box" style="background: #2d3748; border-left: 4px solid #f56565; padding: 20px; margin: 20px 0; border-radius: 8px;">
+            <h3 style="color: #fc8181; margin-top: 0;">
+                <i class="fas fa-clock"></i> Tempo Esgotado
+            </h3>
+            <p style="color: #cbd5e0; line-height: 1.6;">
+                Esperamos que você tenha aproveitado o teste do <strong>Family Guardian 360°</strong>! 
+                Para continuar usando todas as funcionalidades do sistema, adquira sua assinatura agora.
+            </p>
+        </div>
+
+        <div style="margin: 30px 0; text-align: center;">
+            <div style="background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%); border-radius: 12px; padding: 25px; margin-bottom: 20px;">
+                <h3 style="color: #63b3ed; margin: 0 0 15px 0;">
+                    <i class="fas fa-crown"></i> Plano Family Guardian
+                </h3>
+                <div style="font-size: 36px; color: #48bb78; font-weight: bold;">
+                    R$ 29,90
+                    <span style="font-size: 16px; color: #a0aec0;">/mês</span>
+                </div>
+                <ul style="color: #cbd5e0; text-align: left; margin: 20px 0; list-style: none; padding: 0;">
+                    <li style="padding: 8px 0;"><i class="fas fa-check" style="color: #48bb78; margin-right: 10px;"></i> Localização em tempo real</li>
+                    <li style="padding: 8px 0;"><i class="fas fa-check" style="color: #48bb78; margin-right: 10px;"></i> Monitoramento de bateria</li>
+                    <li style="padding: 8px 0;"><i class="fas fa-check" style="color: #48bb78; margin-right: 10px;"></i> Alertas de emergência</li>
+                    <li style="padding: 8px 0;"><i class="fas fa-check" style="color: #48bb78; margin-right: 10px;"></i> Zonas seguras (Geofencing)</li>
+                    <li style="padding: 8px 0;"><i class="fas fa-check" style="color: #48bb78; margin-right: 10px;"></i> Chat familiar</li>
+                    <li style="padding: 8px 0;"><i class="fas fa-check" style="color: #48bb78; margin-right: 10px;"></i> Membros ilimitados</li>
+                </ul>
+            </div>
+
+            <a href="{{ checkout_url }}" target="_blank" class="btn btn-success btn-block" style="display: block; text-align: center; padding: 18px 30px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4); transition: all 0.3s ease;">
+                <i class="fas fa-rocket"></i> Assinar Agora - Checkout Seguro
+            </a>
+            <p style="color: #68d391; font-size: 13px; margin-top: 12px;">
+                <i class="fas fa-shield-alt"></i> Pagamento 100% seguro via Kirvano
+            </p>
+        </div>
+
+        <div style="background: #1a202c; border: 1px solid #2d3748; padding: 15px; margin: 20px 0; border-radius: 8px; text-align: center;">
+            <p style="color: #a0aec0; margin: 0; font-size: 14px;">
+                <i class="fas fa-info-circle"></i> 
+                Após o pagamento, sua conta será ativada automaticamente e você receberá um email de confirmação.
+            </p>
+        </div>
+
+        <div class="auth-footer" style="margin-top: 20px; text-align: center;">
+            <a href="{{ url_for('logout') }}" style="color: #718096; text-decoration: none; font-size: 14px;">
+                <i class="fas fa-sign-out-alt"></i> Sair da conta
+            </a>
+        </div>
+
+        <div class="credits">
+            <p>Desenvolvido por <strong>João Layon</strong> - Desenvolvedor Full Stack</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+    padding: 20px;
+}
+
+.auth-box {
+    background: #1a202c;
+    border-radius: 16px;
+    padding: 40px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid #2d3748;
+}
+
+.auth-logo {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.logo-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    color: white;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.auth-header h1 {
+    color: #f7fafc;
+    margin: 0 0 10px 0;
+    font-size: 24px;
+}
+
+.auth-header .subtitle {
+    color: #a0aec0;
+    margin: 0;
+}
+
+.credits {
+    text-align: center;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #2d3748;
+}
+
+.credits p {
+    color: #4a5568;
+    font-size: 12px;
+    margin: 0;
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(72, 187, 120, 0.5);
+}
+
+@media (max-width: 480px) {
+    .auth-box {
+        padding: 25px;
+    }
+}
+</style>
+{% endblock %}

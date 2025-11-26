@@ -133,6 +133,109 @@ def family_admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def check_trial_status(user_id):
+    """Verifica o status do trial do usuário. Retorna dict com informações do trial."""
+    conn = get_db_connection()
+    user = conn.execute(
+        'SELECT is_trial, trial_started_at, trial_expired, has_paid, user_type FROM users WHERE id = ?',
+        (user_id,)
+    ).fetchone()
+    conn.close()
+    
+    if not user:
+        return {'valid': False, 'reason': 'user_not_found'}
+    
+    if user['user_type'] == 'super_admin':
+        return {'valid': True, 'is_trial': False, 'is_paid': True}
+    
+    if user['has_paid'] == 1:
+        return {'valid': True, 'is_trial': False, 'is_paid': True}
+    
+    if user['is_trial'] != 1:
+        return {'valid': True, 'is_trial': False, 'is_paid': True}
+    
+    if user['trial_expired'] == 1:
+        return {'valid': False, 'is_trial': True, 'is_paid': False, 'reason': 'trial_expired'}
+    
+    if user['trial_started_at']:
+        try:
+            if isinstance(user['trial_started_at'], str):
+                trial_start = datetime.fromisoformat(user['trial_started_at'].replace('Z', '+00:00'))
+            else:
+                trial_start = user['trial_started_at']
+            
+            if trial_start.tzinfo is None:
+                trial_start = trial_start.replace(tzinfo=BRASILIA_TZ)
+            
+            now = now_brasilia()
+            elapsed = (now - trial_start).total_seconds() / 60
+            remaining = max(0, 15 - elapsed)
+            
+            if elapsed >= 15:
+                conn = get_db_connection()
+                conn.execute('UPDATE users SET trial_expired = 1 WHERE id = ?', (user_id,))
+                conn.commit()
+                conn.close()
+                return {'valid': False, 'is_trial': True, 'is_paid': False, 'reason': 'trial_expired', 'elapsed_minutes': elapsed}
+            
+            return {
+                'valid': True, 
+                'is_trial': True, 
+                'is_paid': False, 
+                'remaining_minutes': remaining,
+                'elapsed_minutes': elapsed,
+                'remaining_seconds': int(remaining * 60)
+            }
+        except Exception as e:
+            print(f"Erro ao verificar trial: {e}")
+            return {'valid': True, 'is_trial': True, 'is_paid': False, 'remaining_minutes': 15}
+    
+    return {'valid': True, 'is_trial': True, 'is_paid': False, 'remaining_minutes': 15}
+
+def trial_required(f):
+    """Decorator que verifica se o usuário tem acesso (trial válido ou pagou)"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        
+        trial_status = check_trial_status(session['user_id'])
+        
+        if not trial_status['valid']:
+            if request.headers.get('Accept', '').find('application/json') != -1 or request.is_json:
+                return jsonify({
+                    'success': False,
+                    'trial_expired': True,
+                    'message': 'Seu período de teste expirou. Para continuar usando o sistema, efetue a compra.',
+                    'checkout_url': 'https://pay.kirvano.com/a7c0bdde-0042-4849-985e-8eadf5d06ffb'
+                }), 402
+            return redirect(url_for('trial_expired'))
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/trial-expired')
+def trial_expired():
+    """Página exibida quando o trial expira"""
+    if 'user_id' in session:
+        trial_status = check_trial_status(session['user_id'])
+        if trial_status['valid']:
+            return redirect(url_for('dashboard'))
+    return render_template('trial_expired.html', checkout_url='https://pay.kirvano.com/a7c0bdde-0042-4849-985e-8eadf5d06ffb')
+
+@app.route('/api/trial/status')
+def get_trial_status():
+    """API para verificar status do trial do usuário atual"""
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Não autenticado'}), 401
+    
+    trial_status = check_trial_status(session['user_id'])
+    return jsonify({
+        'success': True,
+        **trial_status,
+        'checkout_url': 'https://pay.kirvano.com/a7c0bdde-0042-4849-985e-8eadf5d06ffb'
+    })
+
 @app.route('/')
 def index():
     """Página inicial - redireciona para dashboard se logado"""
@@ -236,16 +339,89 @@ def login():
 
     return render_template('login.html')
 
+KIRVANO_CHECKOUT_URL = "https://pay.kirvano.com/a7c0bdde-0042-4849-985e-8eadf5d06ffb"
+TRIAL_DURATION_MINUTES = 15
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Página de registro - BLOQUEADA: Registro apenas via pagamento Kirvano ou criação por admin"""
+    """Página de registro com trial de 15 minutos"""
     if request.method == 'POST':
-        return jsonify({
-            'success': False, 
-            'message': 'O cadastro público está desabilitado. Para criar uma conta, realize o pagamento através da nossa plataforma Kirvano ou solicite a um administrador.'
-        }), 403
+        try:
+            data = request.get_json()
+            
+            email = data.get('email', '').strip().lower()
+            password = data.get('password', '')
+            confirm_password = data.get('confirm_password', '')
+            full_name = data.get('full_name', '').strip()
+            
+            if not email or not password or not full_name:
+                return jsonify({'success': False, 'message': 'Nome, email e senha são obrigatórios'}), 400
+            
+            if len(password) < 6:
+                return jsonify({'success': False, 'message': 'A senha deve ter no mínimo 6 caracteres'}), 400
+            
+            if password != confirm_password:
+                return jsonify({'success': False, 'message': 'As senhas não coincidem'}), 400
+            
+            conn = get_db_connection()
+            
+            existing_user = conn.execute(
+                'SELECT id FROM users WHERE email = ?',
+                (email,)
+            ).fetchone()
+            
+            if existing_user:
+                conn.close()
+                return jsonify({'success': False, 'message': 'Este email já está cadastrado'}), 400
+            
+            username = email.split('@')[0]
+            password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            trial_start = now_brasilia()
+            
+            cursor = conn.execute(
+                '''INSERT INTO users (username, email, password_hash, full_name, user_type, is_trial, trial_started_at, has_paid, first_access)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                (username, email, password_hash, full_name, 'family_admin', 1, trial_start.isoformat(), 0, 0)
+            )
+            new_user_id = cursor.lastrowid
+            
+            conn.execute('INSERT INTO user_settings (user_id) VALUES (?)', (new_user_id,))
+            
+            cursor = conn.execute(
+                'INSERT INTO families (name, created_by, description) VALUES (?, ?, ?)',
+                (f'Família {full_name.split()[0]}', new_user_id, 'Família criada automaticamente durante o trial')
+            )
+            family_id = cursor.lastrowid
+            
+            conn.execute(
+                'INSERT INTO family_members (family_id, user_id, role) VALUES (?, ?, ?)',
+                (family_id, new_user_id, 'admin')
+            )
+            
+            conn.commit()
+            conn.close()
+            
+            session['user_id'] = new_user_id
+            session['username'] = username
+            session['full_name'] = full_name
+            session['user_type'] = 'family_admin'
+            session['is_trial'] = True
+            session['trial_started_at'] = trial_start.isoformat()
+            
+            return jsonify({
+                'success': True,
+                'message': f'Conta criada com sucesso! Você tem {TRIAL_DURATION_MINUTES} minutos para testar o sistema.',
+                'redirect': url_for('dashboard'),
+                'trial_minutes': TRIAL_DURATION_MINUTES
+            })
+            
+        except Exception as e:
+            print(f"Erro no registro: {e}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({'success': False, 'message': f'Erro ao criar conta: {str(e)}'}), 500
 
-    return render_template('register.html')
+    return render_template('register.html', trial_minutes=TRIAL_DURATION_MINUTES)
 
 @app.route('/first-access', methods=['GET', 'POST'])
 def first_access():
@@ -316,24 +492,29 @@ def logout():
 
 @app.route('/dashboard')
 @login_required
+@trial_required
 def dashboard():
     """Dashboard principal"""
-    return render_template('dashboard.html')
+    trial_status = check_trial_status(session['user_id'])
+    return render_template('dashboard.html', trial_status=trial_status)
 
 @app.route('/map')
 @login_required
+@trial_required
 def map_view():
     """Visualização do mapa com localizações"""
     return render_template('map.html')
 
 @app.route('/messages')
 @login_required
+@trial_required
 def messages():
     """Página de mensagens"""
     return render_template('messages.html')
 
 @app.route('/settings')
 @login_required
+@trial_required
 def settings():
     """Página de configurações"""
     return render_template('settings.html')
@@ -2587,16 +2768,28 @@ def handle_subscription_activated(conn, data):
             
             username = customer_email.split('@')[0]
             
-            # Criar usuário com flag de primeiro acesso
+            # Criar usuário com flag de primeiro acesso e marcado como pagante
             cursor = conn.execute(
-                '''INSERT INTO users (username, email, password_hash, full_name, user_type, first_access)
-                   VALUES (?, ?, ?, ?, ?, 1)''',
-                (username, customer_email, password_hash, customer_name, 'member')
+                '''INSERT INTO users (username, email, password_hash, full_name, user_type, first_access, is_trial, has_paid, trial_expired)
+                   VALUES (?, ?, ?, ?, ?, 1, 0, 1, 0)''',
+                (username, customer_email, password_hash, customer_name, 'family_admin')
             )
             new_user_id = cursor.lastrowid
             
             # Criar configurações padrão
             conn.execute('INSERT INTO user_settings (user_id) VALUES (?)', (new_user_id,))
+            
+            # Criar família para o novo usuário
+            cursor = conn.execute(
+                'INSERT INTO families (name, created_by, description) VALUES (?, ?, ?)',
+                (f'Família {customer_name.split()[0]}', new_user_id, 'Família criada após pagamento via Kirvano')
+            )
+            family_id = cursor.lastrowid
+            
+            conn.execute(
+                'INSERT INTO family_members (family_id, user_id, role) VALUES (?, ?, ?)',
+                (family_id, new_user_id, 'admin')
+            )
             
             # Associar assinatura ao novo usuário
             conn.execute(
@@ -2607,6 +2800,15 @@ def handle_subscription_activated(conn, data):
             conn.commit()
             print(f'✅ Usuário criado: {customer_email} | Senha temporária: {temp_password}')
             print(f'📧 Envie esta senha por email para o cliente fazer o primeiro acesso!')
+        else:
+            # Usuário já existe (provavelmente era trial) - marcar como pagante
+            conn.execute(
+                '''UPDATE users 
+                   SET has_paid = 1, is_trial = 0, trial_expired = 0, updated_at = ?
+                   WHERE id = ?''',
+                (now_brasilia(), user['id'])
+            )
+            print(f'✅ Usuário {customer_email} atualizado para pagante')
     
     # Calcular datas
     start_date = now_brasilia()
@@ -2655,21 +2857,41 @@ def handle_payment_approved(conn, data):
             
             username = customer_email.split('@')[0]
             
-            # Criar usuário com flag de primeiro acesso
+            # Criar usuário com flag de primeiro acesso e marcado como pagante
             cursor = conn.execute(
-                '''INSERT INTO users (username, email, password_hash, full_name, user_type, first_access)
-                   VALUES (?, ?, ?, ?, ?, 1)''',
-                (username, customer_email, password_hash, customer_name, 'member')
+                '''INSERT INTO users (username, email, password_hash, full_name, user_type, first_access, is_trial, has_paid, trial_expired)
+                   VALUES (?, ?, ?, ?, ?, 1, 0, 1, 0)''',
+                (username, customer_email, password_hash, customer_name, 'family_admin')
             )
             user_id = cursor.lastrowid
             
             # Criar configurações padrão
             conn.execute('INSERT INTO user_settings (user_id) VALUES (?)', (user_id,))
             
+            # Criar família para o novo usuário
+            cursor = conn.execute(
+                'INSERT INTO families (name, created_by, description) VALUES (?, ?, ?)',
+                (f'Família {customer_name.split()[0]}', user_id, 'Família criada após pagamento via Kirvano')
+            )
+            family_id = cursor.lastrowid
+            
+            conn.execute(
+                'INSERT INTO family_members (family_id, user_id, role) VALUES (?, ?, ?)',
+                (family_id, user_id, 'admin')
+            )
+            
             print(f'✅ Usuário criado: {customer_email} | Senha temporária: {temp_password}')
             print(f'📧 Envie esta senha por email para o cliente fazer o primeiro acesso!')
         else:
             user_id = user['id']
+            # Marcar usuário existente como pagante (ex: trial que pagou)
+            conn.execute(
+                '''UPDATE users 
+                   SET has_paid = 1, is_trial = 0, trial_expired = 0, updated_at = ?
+                   WHERE id = ?''',
+                (now_brasilia(), user_id)
+            )
+            print(f'✅ Usuário {customer_email} atualizado para pagante')
         
         # Criar assinatura
         cursor = conn.execute(
@@ -2702,6 +2924,14 @@ def handle_payment_approved(conn, data):
     
     # Fluxo normal - assinatura já existe
     if subscription:
+        # Marcar usuário como pagante
+        conn.execute(
+            '''UPDATE users 
+               SET has_paid = 1, is_trial = 0, trial_expired = 0, updated_at = ?
+               WHERE id = ?''',
+            (now_brasilia(), subscription['user_id'])
+        )
+        
         # Registrar pagamento
         conn.execute(
             '''INSERT INTO payment_history 

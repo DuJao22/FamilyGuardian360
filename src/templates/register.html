@@ -7,68 +7,131 @@
     <div class="auth-box">
         <div class="auth-logo">
             <div class="logo-circle">
-                <i class="fas fa-lock"></i>
+                <i class="fas fa-shield-alt"></i>
             </div>
         </div>
         <div class="auth-header">
-            <h1>Cadastro Desabilitado</h1>
-            <p class="subtitle">Como criar sua conta</p>
+            <h1>FAMILY GUARDIAN 360°</h1>
+            <p class="subtitle">Sistema Profissional de Gestão Familiar</p>
         </div>
 
-        <div class="info-box" style="background: #2d3748; border-left: 4px solid #4299e1; padding: 20px; margin: 20px 0; border-radius: 8px;">
-            <h3 style="color: #4299e1; margin-top: 0;">
-                <i class="fas fa-info-circle"></i> Informação Importante
-            </h3>
-            <p style="color: #cbd5e0; line-height: 1.6;">
-                O cadastro público está desabilitado. Para criar sua conta no <strong>Family Guardian 360°</strong>, você precisa:
+        <div class="trial-banner" style="background: linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%); border-radius: 10px; padding: 15px; margin-bottom: 25px; text-align: center;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fas fa-gift" style="font-size: 24px; color: #bee3f8;"></i>
+                <div>
+                    <p style="color: #bee3f8; margin: 0; font-size: 14px;">TESTE GRATUITO</p>
+                    <p style="color: white; margin: 0; font-weight: bold; font-size: 20px;">{{ trial_minutes }} Minutos</p>
+                </div>
+            </div>
+            <p style="color: #90cdf4; margin: 10px 0 0 0; font-size: 13px;">
+                Experimente todas as funcionalidades sem compromisso!
             </p>
+        </div>
+
+        <form id="registerForm" class="auth-form">
+            <div class="form-group">
+                <label for="full_name"><i class="fas fa-user"></i> Nome Completo</label>
+                <input type="text" id="full_name" name="full_name" required placeholder="Seu nome completo">
+            </div>
+
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope"></i> Email</label>
+                <input type="email" id="email" name="email" required placeholder="seu@email.com">
+            </div>
             
-            <div style="margin: 20px 0;">
-                <h4 style="color: #63b3ed; margin-bottom: 10px;">
-                    <i class="fas fa-credit-card"></i> Opção 1: Adquirir Assinatura
-                </h4>
-                <p style="color: #cbd5e0; margin-left: 25px; margin-bottom: 15px;">
-                    Realize o pagamento através da nossa plataforma <strong>Kirvano</strong>. Após a confirmação do pagamento, sua conta será criada automaticamente e você receberá as credenciais de acesso por e-mail.
-                </p>
-                <a href="https://pay.kirvano.com/a7c0bdde-0042-4849-985e-8eadf5d06ffb" target="_blank" class="btn btn-success btn-block" style="display: block; text-align: center; padding: 15px; background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 15px 25px; box-shadow: 0 4px 6px rgba(72, 187, 120, 0.3); transition: all 0.3s ease;">
-                    <i class="fas fa-rocket"></i> Assinar Agora - Checkout Seguro
-                </a>
-                <p style="color: #68d391; font-size: 12px; text-align: center; margin-top: 10px;">
-                    <i class="fas fa-shield-alt"></i> Pagamento 100% seguro via Kirvano
-                </p>
+            <div class="form-group">
+                <label for="password"><i class="fas fa-lock"></i> Senha</label>
+                <input type="password" id="password" name="password" required placeholder="Mínimo 6 caracteres" minlength="6">
             </div>
 
-            <div style="margin: 20px 0;">
-                <h4 style="color: #63b3ed; margin-bottom: 10px;">
-                    <i class="fas fa-user-shield"></i> Opção 2: Convite Administrativo
-                </h4>
-                <p style="color: #cbd5e0; margin-left: 25px;">
-                    Solicite a um administrador do sistema que crie uma conta para você. Administradores podem adicionar novos membros às suas famílias.
-                </p>
+            <div class="form-group">
+                <label for="confirm_password"><i class="fas fa-lock"></i> Confirmar Senha</label>
+                <input type="password" id="confirm_password" name="confirm_password" required placeholder="Digite a senha novamente">
             </div>
-        </div>
+            
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-rocket"></i> Começar Teste Grátis
+            </button>
+            
+            <div class="auth-footer">
+                <p>Já tem uma conta? <a href="{{ url_for('login') }}">Fazer Login</a></p>
+            </div>
+        </form>
 
-        <div style="background: #1a202c; border: 1px solid #2d3748; padding: 15px; margin: 20px 0; border-radius: 8px;">
-            <h4 style="color: #48bb78; margin-top: 0;">
-                <i class="fas fa-check-circle"></i> Já possui conta?
+        <div style="background: #1a202c; border: 1px solid #2d3748; padding: 15px; margin-top: 20px; border-radius: 8px;">
+            <h4 style="color: #48bb78; margin: 0 0 10px 0; font-size: 14px;">
+                <i class="fas fa-check-circle"></i> O que você ganha no teste:
             </h4>
-            <p style="color: #cbd5e0; margin-bottom: 15px;">
-                Se você já realizou o pagamento ou foi adicionado por um administrador, você pode fazer login agora.
-            </p>
-            <a href="{{ url_for('login') }}" class="btn btn-primary btn-block" style="display: block; text-align: center; padding: 12px; background: #4299e1; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                <i class="fas fa-sign-in-alt"></i> Fazer Login
-            </a>
+            <ul style="color: #a0aec0; margin: 0; padding-left: 20px; font-size: 13px; list-style: none;">
+                <li style="padding: 4px 0;"><i class="fas fa-map-marker-alt" style="color: #4299e1; margin-right: 8px;"></i> Localização em tempo real</li>
+                <li style="padding: 4px 0;"><i class="fas fa-battery-three-quarters" style="color: #48bb78; margin-right: 8px;"></i> Monitoramento de bateria</li>
+                <li style="padding: 4px 0;"><i class="fas fa-bell" style="color: #ed8936; margin-right: 8px;"></i> Alertas de emergência</li>
+                <li style="padding: 4px 0;"><i class="fas fa-users" style="color: #9f7aea; margin-right: 8px;"></i> Gestão de membros da família</li>
+            </ul>
         </div>
-
-        <div class="auth-footer" style="margin-top: 30px; text-align: center;">
-            <p style="color: #718096;">
-                <i class="fas fa-question-circle"></i> Dúvidas? Entre em contato com o suporte.
-            </p>
-        </div>
-
+        
         <div class="credits">
             <p>Desenvolvido por <strong>João Layon</strong> - Desenvolvedor Full Stack</p>
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando conta...';
+    
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm_password').value;
+    
+    if (password !== confirmPassword) {
+        alert('❌ As senhas não coincidem!');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+        return;
+    }
+    
+    if (password.length < 6) {
+        alert('❌ A senha deve ter no mínimo 6 caracteres!');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+        return;
+    }
+    
+    const formData = {
+        full_name: document.getElementById('full_name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        password: password,
+        confirm_password: confirmPassword
+    };
+    
+    try {
+        const response = await fetch('/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ ' + data.message);
+            window.location.href = data.redirect;
+        } else {
+            alert('❌ ' + data.message);
+            submitButton.disabled = false;
+            submitButton.innerHTML = originalText;
+        }
+    } catch (error) {
+        console.error('Erro no cadastro:', error);
+        alert('❌ Erro ao criar conta. Verifique sua conexão e tente novamente.');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+    }
+});
+</script>
 {% endblock %}

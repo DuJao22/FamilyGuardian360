@@ -243,6 +243,39 @@ def run_migrations_on_db(conn, db_name="Cloud"):
         else:
             print("✅ Coluna first_access já existe")
 
+        # Migração 3: Adicionar campos de trial
+        if 'is_trial' not in columns:
+            print("⚙️ Executando migração: Adicionar is_trial")
+            cursor.execute("ALTER TABLE users ADD COLUMN is_trial INTEGER DEFAULT 0")
+            conn.commit()
+            print("✅ Migração is_trial concluída")
+        else:
+            print("✅ Coluna is_trial já existe")
+
+        if 'trial_started_at' not in columns:
+            print("⚙️ Executando migração: Adicionar trial_started_at")
+            cursor.execute("ALTER TABLE users ADD COLUMN trial_started_at TIMESTAMP")
+            conn.commit()
+            print("✅ Migração trial_started_at concluída")
+        else:
+            print("✅ Coluna trial_started_at já existe")
+
+        if 'trial_expired' not in columns:
+            print("⚙️ Executando migração: Adicionar trial_expired")
+            cursor.execute("ALTER TABLE users ADD COLUMN trial_expired INTEGER DEFAULT 0")
+            conn.commit()
+            print("✅ Migração trial_expired concluída")
+        else:
+            print("✅ Coluna trial_expired já existe")
+
+        if 'has_paid' not in columns:
+            print("⚙️ Executando migração: Adicionar has_paid")
+            cursor.execute("ALTER TABLE users ADD COLUMN has_paid INTEGER DEFAULT 0")
+            conn.commit()
+            print("✅ Migração has_paid concluída")
+        else:
+            print("✅ Coluna has_paid já existe")
+
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='supervisor_permissions'")
         table_exists = cursor.fetchone()
 
