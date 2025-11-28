@@ -190,7 +190,12 @@ def run_migrations_on_db(conn, db_name="Cloud"):
 
     try:
         cursor.execute("PRAGMA table_info(users)")
-        columns = [column[1] for column in cursor.fetchall()]
+        raw_columns = cursor.fetchall()
+        # SQLiteCloud retorna dicionários, SQLite local retorna tuplas
+        if raw_columns and isinstance(raw_columns[0], dict):
+            columns = [column['name'] for column in raw_columns]
+        else:
+            columns = [column[1] for column in raw_columns]
 
         if 'user_type' not in columns:
             print(f"🔄 [{db_name}] Adicionando coluna user_type...")
